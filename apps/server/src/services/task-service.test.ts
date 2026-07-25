@@ -18,7 +18,10 @@ describe("TaskService", () => {
     await service.list();
 
     expect(db.entry.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { kind: "task" } }),
+      expect.objectContaining({
+        where: { kind: "task" },
+        orderBy: { dueDate: "asc" },
+      }),
     );
   });
 

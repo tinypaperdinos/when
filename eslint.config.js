@@ -20,6 +20,24 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // apps/web must only ever consume the `server` package for its exported
+      // `AppRouter` type (see AGENT_RULES.md / plan.md §4.5) — a value import would
+      // pull Express/Prisma/Node-only code into the browser bundle. `allowTypeImports`
+      // keeps `import type { AppRouter } from "server"` allowed while rejecting any
+      // value import from the package.
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "server",
+              allowTypeImports: true,
+              message:
+                "Only `import type { AppRouter } from \"server\"` is allowed here — a value import would pull server-only (Express/Prisma/Node) code into the browser bundle.",
+            },
+          ],
+        },
+      ],
     },
   },
 );
