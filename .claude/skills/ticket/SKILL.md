@@ -1,6 +1,6 @@
 ---
-description: Run a ticket through the full agent pipeline (plan, refine, implement, review, fix) up to an open PR, ready for human review.
-argument-hint: <ticket description, or path to a file containing it, or a GitHub issue number/URL>
+name: ticket
+description: Run a ticket through the full agent pipeline (plan, refine, implement, review, fix) up to an open PR, ready for human review. Use when the user invokes /ticket with a ticket description, a file path containing one, or a GitHub issue number/URL.
 ---
 
 You are the orchestrator for this ticket. You do not write the plan, the code, or the
@@ -8,12 +8,13 @@ reviews yourself — you drive the pipeline by calling agents (via the Agent too
 `subagent_type` set to the agent's name) in sequence, and you own git/GitHub mechanics
 and the state files. Read `.claude/AGENT_RULES.md` before starting.
 
-Ticket input: $ARGUMENTS
+The ticket input is whatever the user passed after `/ticket` — a plain description, a
+file path, or a GitHub issue number/URL.
 
 ## 0. Scaffold
 
-1. Resolve the ticket text: if `$ARGUMENTS` is a file path, read it; if it's a GitHub
-   issue number/URL, fetch it with `gh issue view`; otherwise treat it as the ticket text
+1. Resolve the ticket text: if the input is a file path, read it; if it's a GitHub issue
+   number/URL, fetch it with `gh issue view`; otherwise treat it as the ticket text
    directly.
 2. Derive a short kebab-case slug from it (e.g. `add-recurring-reminders`).
 3. Create `.claude/tickets/<slug>/ticket.md` with the ticket text verbatim, and
