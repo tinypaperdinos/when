@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for package.json
+        id: pkg
+        run: echo "exists=$([ -f package.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        if: steps.pkg.outputs.exists == 'true'
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm ci
+
+      - name: Lint
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm run lint --if-present
+
+      - name: Typecheck
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm run typecheck --if-present
+
+      - name: Test
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm run test --if-present
+
+      - name: Build
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm run build --if-present
+
+      - name: No package.json yet
+        if: steps.pkg.outputs.exists == 'false'
+        run: |
+          echo "::warning::No package.json found. This workflow is a placeholder \
+          — once the stack is chosen, remove the exists-guards above (or rewrite \
+          this file for the actual tooling) so CI genuinely gates on lint/test/build."
