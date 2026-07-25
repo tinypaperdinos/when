@@ -30,6 +30,6 @@ Full conventions — repo layout, data model, coding rules — are in
 ## How this gets built
 
 Implementation runs through an agent pipeline: plan → refine → implement → review → fix
-→ PR, driven by the `/ticket` command and the agent definitions in `.claude/agents/`.
-The human's role is writing tickets and doing the final PR review — see
-`.claude/AGENT_RULES.md` for the full pipeline conventions.
+→ PR, driven by the `/ticket` skill (`.claude/skills/ticket/`) and the agent definitions
+in `.claude/agents/`. The human's role is writing tickets and doing the final PR review —
+see `.claude/AGENT_RULES.md` for the full pipeline conventions.

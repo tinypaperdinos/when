@@ -1,6 +1,6 @@
 ---
-description: Run the meta-auditor over recently merged tickets to update AGENT_RULES.md with recurring findings and drift.
-argument-hint: (none)
+name: audit
+description: Run the meta-auditor over recently merged tickets to update AGENT_RULES.md with recurring findings and drift. Use when the user invokes /audit.
 ---
 
 Call `meta-auditor` (subagent_type: `meta-auditor`). It reads `.claude/AGENT_RULES.md`'s
