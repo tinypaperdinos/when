@@ -4,5 +4,8 @@ build/
 .env
 .env.local
 *.log
+*.db
+*.db-journal
+*.tsbuildinfo
 
 .claude/settings.local.json

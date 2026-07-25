@@ -27,6 +27,17 @@ somewhere shared across devices is a later step, not part of the MVP.
 Full conventions — repo layout, data model, coding rules — are in
 `.claude/AGENT_RULES.md`.
 
+## Getting started
+
+```
+npm install
+cp apps/server/.env.example apps/server/.env
+npm run migrate -w apps/server
+npm run dev
+```
+
+Then open http://localhost:5173.
+
 ## How this gets built
 
 Implementation runs through an agent pipeline: plan → refine → implement → review → fix
