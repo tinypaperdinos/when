@@ -67,3 +67,72 @@ No genuinely risky edge case from plan.md §7 is left uncovered by either an aut
 an independently-confirmed manual check.
 
 VERDICT: APPROVED
+
+## reviewer-tests — round 2
+
+Scope: verify the fixer's changes since round 1 (commit `f6174a4`). Two changes touch
+test-relevant surface:
+
+1. `apps/server/src/services/task-service.test.ts` — added an `orderBy: { dueDate: "asc" }`
+   assertion to the existing `where`-clause check, addressing round-1 non-blocking finding #1.
+2. `eslint.config.js` — added `@typescript-eslint/no-restricted-imports` (scoped to
+   `apps/web/src/**`, `allowTypeImports: true`, restricting the `server` package), addressing
+   round-1 non-blocking finding #2. Not a test file, but re-checked per instruction since it
+   changes CI-enforced behavior.
+
+The third change in that commit (`apps/server/package.json`'s `dev` script reordering,
+`tsx --env-file=.env watch` → `tsx watch --env-file=.env`) was reviewer-code's round-1
+blocking finding, not reviewer-tests' — out of scope for this file, not re-litigated here,
+but spot-checked (`grep '"dev"' apps/server/package.json`) to confirm the fix is present in
+the diff I'm reviewing.
+
+### Verification performed
+
+- Ran both suites fresh: `npm run test --workspace=apps/server` (8/8 pass, 3 files) and
+  `npm run test --workspace=apps/web` (4/4 pass, 1 file). Also `npm run typecheck` (root,
+  fans out to both workspaces) — clean.
+- **Mutation-tested the new `orderBy` assertion directly** (not just read it): temporarily
+  edited `apps/server/src/services/task-service.ts` in the working tree to (a) drop the
+  `orderBy` clause entirely, and (b) change `"asc"` to `"desc"`. Both mutations made
+  `task-service.test.ts`'s "filters to kind: task, excluding events" test fail with a clear
+  diff (`ObjectContaining{orderBy:{dueDate:"asc"}}` vs. the mutated call args). Reverted the
+  file afterward (`git diff` on that file is now clean, confirmed via `git status --porcelain`
+  showing no changes to the repo). This closes round-1 finding #1 for real — the test is a
+  genuine regression guard, not one that would pass against a reverted/buggy implementation.
+- **Verified the new ESLint rule actually enforces the boundary**, not just that it's
+  configured plausibly: created a scratch file
+  `apps/web/src/__tmp-verify-restricted-import.tsx` with `import { appRouter } from "server"`,
+  ran `npx eslint` on it directly — got the expected
+  `@typescript-eslint/no-restricted-imports` error with the custom message. Deleted the
+  scratch file immediately after (confirmed via `git status --porcelain` the working tree is
+  clean, matching `feat/scaffold-project` exactly — no stray files left behind). Also ran
+  `npm run lint --workspace=apps/web` and the root `npm run lint` (fans out to both
+  workspaces) against the actual diff's existing files — both pass clean, confirming the rule
+  doesn't false-positive on the two legitimate `import type { AppRouter } from "server"`
+  usages (`apps/web/src/trpc.ts`, `apps/web/src/routes/tasks-page.test.tsx`).
+  - Note: during this session I observed a transient, already-untracked
+    `apps/web/src/__tmp-bad-import.tsx` file appear briefly in `git status`/`eslint` output
+    and then disappear before a subsequent `Read`/`git status` — looked like leftover state
+    from the fixer's own manual verification of this same rule (mentioned in the commit
+    message: "Verified it rejects a value import and allows the existing `import type`
+    usages"), not something in the actual diff. Confirmed it isn't tracked, isn't in
+    `git diff main...feat/scaffold-project`, and the tree is clean now — flagging only for
+    the record, no action needed.
+
+### Findings
+
+Both round-1 non-blocking findings are now closed:
+
+1. **[resolved]** `orderBy` is now asserted and mutation-tested to genuinely catch a dropped
+   or changed sort (see above). No further action.
+2. **[resolved]** The `import type`-only boundary now has a dedicated, verified ESLint rule
+   in addition to the incidental build-time backstop noted in round 1. No further action.
+
+No new gaps introduced. The `eslint.config.js` change is config, not a test file, but I
+confirmed it doesn't regress lint on the existing diff and does enforce the invariant it
+claims to — nothing further to check there per the task instructions. All of plan.md §7's
+edge cases remain covered exactly as verified in round 1 (unchanged files); nothing in this
+fix round touched `db.test.ts`, `task-router.test.ts`, or `tasks-page.test.tsx`, and I did not
+find any new behavior change in the diff that lacks test coverage.
+
+VERDICT: APPROVED
