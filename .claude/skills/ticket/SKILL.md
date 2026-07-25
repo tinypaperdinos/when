@@ -61,8 +61,9 @@ This lets CI start running while review happens. Set `status.md` to `reviewing`.
 Loop up to 2 times:
 
 1. Call `reviewer-code` and `reviewer-tests` (these are independent — call them in the
-   same message so they run in parallel). Both append to `review-notes.md` and end with
-   a verdict line.
+   same message so they run in parallel). Each appends to its own file
+   (`review-notes-code.md` / `review-notes-tests.md` — never a shared file, two agents
+   writing to the same file concurrently races) and ends with a verdict line.
 2. If both say `APPROVED`, break out of the loop and continue to step 5.
 3. If either has blocking findings: set `status.md` to `fixing`, call `fixer` to address
    them, then go back to step 1 for another review round (re-review the fixed diff, not

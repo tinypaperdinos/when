@@ -43,8 +43,12 @@ Each ticket lives in `.claude/tickets/<slug>/`:
   It's the source of truth for "did we build the right thing."
 - `plan.md` — current plan, owned by `planner`, revised in place across refine rounds.
 - `refiner-notes.md` — one entry per refine round, appended by `plan-refiner`.
-- `review-notes.md` — one entry per review round, appended by `reviewer-code` and
-  `reviewer-tests`.
+- `review-notes-code.md` / `review-notes-tests.md` — one entry per review round, each
+  appended only by its own reviewer (`reviewer-code` / `reviewer-tests` respectively).
+  Deliberately separate files, not a shared `review-notes.md`: the two reviewers run in
+  parallel, and two agents appending to the same file concurrently is a real race — it
+  happened on the very first ticket run through this pipeline, silently dropping one
+  reviewer's findings. Never have two agents write to the same file in the same round.
 - `status.md` — single current state line, one of: `planning`, `refining`, `implementing`,
   `reviewing`, `fixing`, `pr-opened`, `stuck-needs-human`, `done`. Whoever transitions the
   state updates this file.
@@ -68,7 +72,8 @@ Each ticket lives in `.claude/tickets/<slug>/`:
 ## Division of responsibility
 
 - `planner` and `plan-refiner` never write code.
-- `reviewer-code` and `reviewer-tests` never edit code — findings only, in `review-notes.md`.
+- `reviewer-code` and `reviewer-tests` never edit code — findings only, each in its own
+  file (`review-notes-code.md` / `review-notes-tests.md`).
 - `fixer` applies fixes from review findings with fresh context, not `implementer` — this
   avoids anchoring on the original approach.
 - Scope fidelity (does the diff actually satisfy `ticket.md`, not just "is the code good")

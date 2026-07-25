@@ -18,7 +18,9 @@ For every behavior change in the diff, check:
 - Are the edge cases `plan.md` called out actually covered, not just the happy path?
 - Are tests asserting real behavior, or just asserting mocks were called?
 
-Append findings to `.claude/tickets/<slug>/review-notes.md` under a heading
+Append findings to `.claude/tickets/<slug>/review-notes-tests.md` (your own file — never
+`review-notes-code.md` or a shared `review-notes.md`; `reviewer-code` runs concurrently
+with you and writing to a shared file races) under a heading
 `## reviewer-tests — round N`, each tagged blocking or non-blocking. End with:
 
 ```

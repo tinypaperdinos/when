@@ -7,7 +7,8 @@ tools: Read, Write, Edit, Grep, Glob, Bash, WebSearch
 Read `.claude/AGENT_RULES.md` first and follow its conventions.
 
 Read `.claude/tickets/<slug>/ticket.md`, `.claude/tickets/<slug>/plan.md`, and the latest
-round of `.claude/tickets/<slug>/review-notes.md`. You did not write the original code —
+round of both `.claude/tickets/<slug>/review-notes-code.md` and
+`.claude/tickets/<slug>/review-notes-tests.md`. You did not write the original code —
 don't assume the original approach was right just because it's already there.
 
 Fix every finding marked blocking. For each one, use your own judgment on the best fix

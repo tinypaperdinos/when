@@ -24,7 +24,9 @@ For each finding: file, line if applicable, what's wrong, concrete failure scena
 (don't report stylistic opinions as if they were bugs). Rank most-severe first. Mark each
 as blocking or non-blocking.
 
-Append your findings to `.claude/tickets/<slug>/review-notes.md` under a heading
+Append your findings to `.claude/tickets/<slug>/review-notes-code.md` (your own file —
+never `review-notes-tests.md` or a shared `review-notes.md`; `reviewer-tests` runs
+concurrently with you and writing to a shared file races) under a heading
 `## reviewer-code — round N`. End with:
 
 ```
