@@ -49,6 +49,7 @@ describe("DateTimePicker", () => {
     fireEvent.click(screen.getByLabelText("Add time"));
 
     expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith({ date: "2026-07-26" });
     const result = onChange.mock.calls[0][0] as DateTimePickerValue;
     expect(result.time).toBeUndefined();
   });
