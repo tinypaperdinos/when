@@ -22,7 +22,11 @@ tags, layout primitives, etc. Not feature/page components (those live under
     that need to stand out from `accent`).
   - **No Material-style elevation**: components are border-first (`border-2 border-ink`
     is the norm, not a soft `box-shadow`). Depth comes from a hard, non-blurred offset
-    shadow (`shadow-[3px_3px_0_0_#1e1d1b]`), not a blurred elevation shadow.
+    shadow — the `shadow-hard` utility (a `--shadow-hard` theme token defined in
+    `index.css` as `3px 3px 0 0 var(--color-ink)`), not a blurred elevation shadow. Use
+    the `shadow-hard` class rather than re-typing the arbitrary-value shadow — it's
+    already reused by `button.tsx`/`card.tsx`/`panel.tsx` and this keeps the color tied
+    to `--color-ink` in one place.
   - **Press feedback**: on `active`, translate the element by the same offset as its
     shadow and drop the shadow instantly (`active:translate-x-[3px] active:translate-y-[3px]
     active:shadow-none`) — see `button.tsx`. Don't transition `box-shadow` itself; a
@@ -37,6 +41,11 @@ tags, layout primitives, etc. Not feature/page components (those live under
     with a spring-pop + confirm ring, tag chip variants) lives in the unmerged
     `explore/page-design` reference branch — pull patterns from there as the tickets that
     need them come up, rather than re-deciding from scratch.
+- **Class composition**: use the `cn` helper (`src/lib/cn.ts`) to join a component's
+  base/variant classes with a consumer-supplied `className`, rather than repeating
+  `[a, b, c].filter(Boolean).join(" ")` inline — it's a plain join, not `clsx`/
+  `tailwind-merge`, so it doesn't dedupe or resolve conflicting utilities; consumers are
+  still responsible for not passing a `className` that conflicts with a base utility.
 - **Demo route**: every component here must be added to the demo page
   (`src/routes/ui-demo-page.tsx`) so it stays visible for visual review at `/dev/ui`
   (dev server only). This is manual registration, not auto-discovery — when you add a

@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes } from "react";
+import { cn } from "../../lib/cn";
 
 // NOTE for issue #15 ("Component library: form primitives"): this is the real,
 // permanent Button, not a throwaway proof-of-concept — extend this file in place with
@@ -16,7 +17,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const baseClasses =
   "inline-flex items-center justify-center rounded-sm border-2 font-medium " +
-  "shadow-[3px_3px_0_0_#1e1d1b] transition-transform duration-100 ease-out " +
+  "shadow-hard transition-transform duration-100 ease-out " +
   "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none " +
   "focus-visible:outline-none focus-visible:outline-dashed focus-visible:outline-2 " +
   "focus-visible:outline-offset-2 focus-visible:outline-accent " +
@@ -39,9 +40,7 @@ export function Button({
   className,
   ...props
 }: ButtonProps) {
-  const classes = [baseClasses, variantClasses[variant], sizeClasses[size], className]
-    .filter(Boolean)
-    .join(" ");
+  const classes = cn(baseClasses, variantClasses[variant], sizeClasses[size], className);
 
   return <button className={classes} {...props} />;
 }
