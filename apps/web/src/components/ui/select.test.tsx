@@ -55,6 +55,30 @@ describe("Select", () => {
     expect(select.value).toBe("");
   });
 
+  it("keeps a consumer-supplied defaultValue when placeholder is also given (fallback backs off)", () => {
+    render(
+      <Select aria-label="pick one, pre-filled" placeholder="Choose…" defaultValue="b">
+        <option value="a">Option A</option>
+        <option value="b">Option B</option>
+      </Select>,
+    );
+
+    const select = screen.getByLabelText("pick one, pre-filled") as HTMLSelectElement;
+    expect(select.value).toBe("b");
+  });
+
+  it("keeps a consumer-supplied controlled value when placeholder is also given (fallback backs off)", () => {
+    render(
+      <Select aria-label="pick one, controlled" placeholder="Choose…" value="b" onChange={() => {}}>
+        <option value="a">Option A</option>
+        <option value="b">Option B</option>
+      </Select>,
+    );
+
+    const select = screen.getByLabelText("pick one, controlled") as HTMLSelectElement;
+    expect(select.value).toBe("b");
+  });
+
   it("prevents changes to a controlled value when disabled", () => {
     render(
       <Select aria-label="disabled select" value="b" disabled onChange={() => {}}>
