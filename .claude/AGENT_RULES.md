@@ -34,6 +34,19 @@ Decided 2026-07-25. Don't deviate from this without the human explicitly changin
 - **Calendar UI**: FullCalendar (`@fullcalendar/react`), chosen for its built-in drag-and-drop
   rescheduling. Stay on the free feature set (month/week/day/list views, drag-and-drop) —
   don't reach for resource-timeline/scheduler views, they require a paid license.
+- **(2026-07-26 addendum) `Date` fields cross the tRPC boundary as plain strings, not
+  `Date` objects** — `apps/server/src/trpc.ts` and `apps/web/src/trpc.ts` don't configure
+  a `superjson` (or equivalent) transformer, so tRPC's default JSON serialization turns
+  every `Date`-typed field (`dueDate`, `date`, `createdAt`, `updatedAt` on `Entry`) into a
+  string on the wire, while the type inferred from `AppRouter` still claims `Date`. This
+  was flagged twice during `scaffold-project` (refiner-notes.md round 2, review-notes-code.md
+  round 1) as a real, well-documented tRPC gotcha, left non-blocking only because no code
+  at the time called a `Date` method on those fields — it's still unresolved in the
+  codebase as of this audit. Any ticket that renders, sorts, or otherwise calls a `Date`
+  method on `dueDate`/`date`/`createdAt`/`updatedAt` (client- or server-side) must either
+  add `transformer: superjson` to both `trpc.ts` files first, or treat the value as a
+  string explicitly (e.g. `new Date(entry.dueDate)`) — don't trust the inferred `Date`
+  type at the tRPC boundary until the transformer is added.
 
 ## Ticket state
 
@@ -60,7 +73,16 @@ don't blur that line by writing ticket state anywhere under `.claude/`.
   reviewer's findings. Never have two agents write to the same file in the same round.
 - `status.md` — single current state line, one of: `planning`, `refining`, `implementing`,
   `reviewing`, `fixing`, `pr-opened`, `stuck-needs-human`, `done`. Whoever transitions the
-  state updates this file.
+  state updates this file. **(2026-07-26 note)** In practice, under the current `/ticket`
+  skill, the pipeline itself never writes `done` — the last write it makes is `pr-opened`
+  (right before `gh pr ready`), and merging is explicitly the human's job, done outside
+  any agent's turn. `scaffold-project`'s `status.md` still reads `pr-opened` even though
+  its PR (#3) was merged. Don't treat a lingering `pr-opened` as a bug or a sign a ticket
+  is stuck — it just means no agent has run against that slug since the human merged it.
+  If this distinction matters later (e.g. wanting `tickets/<slug>/status.md` to reliably
+  reflect merge state), that requires a deliberate pipeline change — a human follow-up
+  step or an orchestrator check against `gh pr view --json state` — not something to
+  quietly start doing inconsistently.
 
 ## Committing ticket state
 
@@ -102,6 +124,22 @@ at whichever of these happens first:
 - Scope fidelity (does the diff actually satisfy `ticket.md`, not just "is the code good")
   is part of `reviewer-code`'s checklist, not a separate stage.
 
+## Review execution
+
+- **(2026-07-26)** Reading the diff is not enough for `reviewer-code` — actually run the
+  thing. On `scaffold-project`, `reviewer-code` round 1 caught a blocking bug
+  (`apps/server`'s `dev` script crashing on startup because of tsx CLI argument order)
+  only because it ran `npm ci`, the dev servers, and a real `curl` against the running
+  server instead of just reading the diff — reading the `package.json` diff alone would
+  not have caught it, since the broken line looked plausible on paper. `reviewer-tests`'s
+  own instructions already say "verify by running the test suite" for test claims;
+  `reviewer-code`'s instructions don't currently say the equivalent for runtime/build
+  claims even though it has the same `Bash` tool. **Flagging for the human**: consider
+  tightening `.claude/agents/reviewer-code.md` to explicitly instruct running
+  lint/typecheck/build/dev commands relevant to the diff, not just reading it — this is a
+  proposed edit to another agent's definition, not something `meta-auditor` is making
+  unilaterally.
+
 ## What meta-auditor looks for
 
 Run on demand via `/audit`, not part of the per-ticket loop. Looks across merged tickets
@@ -112,4 +150,22 @@ aren't written down anywhere. Updates land in this file, dated, with a one-line 
 
 ## Audit log
 
-(No audits yet — `meta-auditor` appends one line here per run.)
+- **2026-07-26**: First audit. Only one ticket (`scaffold-project`, PR #3) has been through
+  the actual `/ticket` pipeline so far, so this is a single-data-point pass, not a
+  cross-ticket pattern search. Confirmed the two prior AGENT_RULES.md edits (PR #3's
+  `review-notes-code`/`review-notes-tests` split, PR #10's `tickets/` relocation +
+  batched-commit rule) already captured that ticket's process lessons — no further action
+  needed there. Added three new items from re-reading `scaffold-project`'s full
+  plan/refiner/review history against the current file: (1) the still-unresolved
+  `superjson`/`Date`-serialization gap under Tech stack, since it will bite the first
+  future ticket that renders a date field and wasn't written down anywhere agents would
+  see it before now; (2) a clarifying note on `status.md`'s `done` state, since the
+  current `/ticket` skill never actually writes it (confirmed by reading
+  `.claude/skills/ticket/SKILL.md`) and `scaffold-project`'s `status.md` still reads
+  `pr-opened` post-merge — not a bug, but worth being explicit about so it isn't
+  "fixed" inconsistently later; (3) a flagged (not applied) proposal to tighten
+  `reviewer-code.md` to explicitly require running the stack, since that's what caught
+  `scaffold-project`'s one blocking finding and the instruction only exists for
+  `reviewer-tests` today. PRs #1, #2, #10 were orchestrator-direct changes with no
+  ticket folder, per the launching agent's note — nothing to audit there beyond what's
+  already reflected in this file's edit history.
