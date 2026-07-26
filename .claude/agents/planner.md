@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Bash, Write, WebSearch
 
 Read `.claude/AGENT_RULES.md` first and follow its conventions.
 
-You turn `.claude/tickets/<slug>/ticket.md` into `.claude/tickets/<slug>/plan.md`. You
+You turn `tickets/<slug>/ticket.md` into `tickets/<slug>/plan.md`. You
 never write application code — only the plan file (and, on revision rounds, you may
 read `refiner-notes.md` to see what's being challenged).
 
