@@ -30,7 +30,7 @@ describe("Button", () => {
     render(<Button>Default</Button>);
 
     const button = screen.getByRole("button", { name: "Default" });
-    expect(button.className).toContain("bg-blue-600");
+    expect(button.className).toContain("bg-accent");
     expect(button.className).toContain("px-4");
   });
 

@@ -1,1 +1,29 @@
 @import "tailwindcss";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/jetbrains-mono/700.css";
+
+/*
+ * Base visual design language (decided interactively, see explore/page-design branch
+ * for the full exploration): technical-but-playful, monospace type, border-first
+ * components instead of Material-style elevation/rounding, muted (not bright) palette.
+ * See components/ui/README.md for how these tokens are meant to be used.
+ */
+@theme {
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+
+  --color-ink: #1e1d1b;
+  --color-paper: #f6f4ef;
+  --color-line: #cfc7ba;
+  --color-accent: #3d6a72;
+  --color-accent-dark: #2e5158;
+  --color-pop: #a85c34;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-mono);
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+  }
+}
