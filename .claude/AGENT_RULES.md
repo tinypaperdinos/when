@@ -34,13 +34,10 @@ Decided 2026-07-25. Don't deviate from this without the human explicitly changin
 - **Calendar UI**: FullCalendar (`@fullcalendar/react`), chosen for its built-in drag-and-drop
   rescheduling. Stay on the free feature set (month/week/day/list views, drag-and-drop) —
   don't reach for resource-timeline/scheduler views, they require a paid license.
-- **Styling** (decided 2026-07-26): Tailwind CSS, default theme for now — do not invest
-  in a custom color palette/type scale/radii or otherwise fight the defaults yet.
-  Deliberately deferred, not forgotten: a fully custom theme (overriding, not just
-  extending, Tailwind's default tokens, so default-palette classes stop existing rather
-  than just being discouraged) is planned for later, tracked separately. Until that
-  lands, using Tailwind's defaults is expected and fine — don't let a ticket scope-creep
-  into inventing a design system prematurely.
+- **Styling** (decided 2026-07-26): Tailwind CSS. Extend the theme (colors, spacing,
+  type scale, radii, etc.) as individual component/feature tickets need it — design
+  choices land incrementally with the tickets that need them, not as one big future
+  theming ticket.
 - **Component library**: generic, reusable, tested components live under
   `apps/web/src/components/ui/` (buttons, inputs, date-time picker, tags, layout
   primitives, etc.), built and reviewed before the feature tickets that consume them.
