@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button, type ButtonSize, type ButtonVariant } from "../components/ui/button";
 import { Section } from "../components/ui/section";
 import { Card, type CardPadding } from "../components/ui/card";
@@ -6,6 +7,8 @@ import { TextInput, type TextInputSize } from "../components/ui/text-input";
 import { Textarea } from "../components/ui/textarea";
 import { Checkbox } from "../components/ui/checkbox";
 import { Select } from "../components/ui/select";
+import { DateTimePicker, type DateTimePickerValue } from "../components/ui/date-time-picker";
+import { DateRangePicker, type DateRangeValue } from "../components/ui/date-range-picker";
 
 // Dev-only demo route (`/dev/ui`, registered only when `import.meta.env.DEV`) that
 // renders every component in `components/ui/` along with its variants, for visual
@@ -33,6 +36,19 @@ function PlusIcon() {
 }
 
 export function UiDemoPage() {
+  // DateTimePicker/DateRangePicker are controlled-only (components/ui/README.md), so —
+  // unlike every other demo entry above, which uses defaultValue/defaultChecked and
+  // needs no state — these need local useState wiring to be interactive at all.
+  const [dueDate, setDueDate] = useState<DateTimePickerValue>({ date: "" });
+  const [dueDateFixedTime, setDueDateFixedTime] = useState<DateTimePickerValue>({
+    date: "",
+    time: "",
+  });
+  const [eventRange, setEventRange] = useState<DateRangeValue>({
+    start: { date: "2026-07-26" },
+    end: { date: "" },
+  });
+
   return (
     <main>
       <h1>UI component library</h1>
@@ -167,6 +183,28 @@ export function UiDemoPage() {
             <option value="high">High</option>
           </Select>
         </p>
+      </section>
+
+      <section>
+        <h2>DateTimePicker</h2>
+        <p>timeOptional default (true) — click "Add time" to reveal the time field:</p>
+        <DateTimePicker value={dueDate} onChange={setDueDate} />
+
+        <p>timeOptional=false — both fields always shown, no toggle:</p>
+        <DateTimePicker
+          value={dueDateFixedTime}
+          onChange={setDueDateFixedTime}
+          timeOptional={false}
+        />
+      </section>
+
+      <section>
+        <h2>DateRangePicker</h2>
+        <p>
+          seeded with a start date already set, to demonstrate the end date's min
+          guardrail:
+        </p>
+        <DateRangePicker value={eventRange} onChange={setEventRange} />
       </section>
     </main>
   );
