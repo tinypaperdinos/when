@@ -37,10 +37,19 @@ Decided 2026-07-25. Don't deviate from this without the human explicitly changin
 
 ## Ticket state
 
-Each ticket lives in `.claude/tickets/<slug>/`:
+Each ticket lives in `tickets/<slug>/` — a plain top-level directory, deliberately *not*
+under `.claude/`. Ticket-running agents should never need to read or write anything
+under `.claude/agents/` or `.claude/skills/` — only `meta-auditor`, via the separate
+human-invoked `/audit` flow, legitimately touches `.claude/`. Keeping ticket data out of
+that tree means a permission prompt for `tickets/**` reads unambiguously as "ticket
+work," and a prompt under `.claude/` reads unambiguously as "pipeline config change" —
+don't blur that line by writing ticket state anywhere under `.claude/`.
 
-- `ticket.md` — the original scope/requirements as the human wrote them. Never edit this.
-  It's the source of truth for "did we build the right thing."
+- `ticket.md` — the original scope/requirements. Never edit this. It's the source of
+  truth for "did we build the right thing." If the ticket came from a GitHub issue, this
+  is a short pointer (issue number + URL), not a copy of the body — read the issue with
+  `gh issue view <number>` for the full text instead of relying on a duplicate. If the
+  ticket came from inline text or a file, this holds the full text verbatim.
 - `plan.md` — current plan, owned by `planner`, revised in place across refine rounds.
 - `refiner-notes.md` — one entry per refine round, appended by `plan-refiner`.
 - `review-notes-code.md` / `review-notes-tests.md` — one entry per review round, each
@@ -52,6 +61,20 @@ Each ticket lives in `.claude/tickets/<slug>/`:
 - `status.md` — single current state line, one of: `planning`, `refining`, `implementing`,
   `reviewing`, `fixing`, `pr-opened`, `stuck-needs-human`, `done`. Whoever transitions the
   state updates this file.
+
+## Committing ticket state
+
+Ticket files (`ticket.md`, `plan.md`, `refiner-notes.md`, `review-notes-*.md`,
+`status.md`) are real, valuable history — commit them, don't gitignore them. But don't
+commit them on every stage transition; that produces a stream of small "chore: status
+now X" commits that clutter `git log` alongside the actual code commits. Instead, edit
+them freely and leave them uncommitted through planning/refining/implementing/reviewing,
+and commit the whole `tickets/<slug>/` folder in **one commit**, separate from code
+commits (`implementer`'s and `fixer`'s commits stay their own commits, as real work),
+at whichever of these happens first:
+- right before the PR is marked ready for review, or
+- the moment `status.md` is set to `stuck-needs-human`, so the escalation reason isn't
+  left sitting unpushed in a local working tree.
 
 ## Branch and PR conventions
 

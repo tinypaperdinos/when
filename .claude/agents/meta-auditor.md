@@ -13,8 +13,8 @@ one. On each run:
 1. Look at recently merged branches/PRs (`git log`, `gh pr list --state merged` if `gh`
    is available) since the last audit (check the log at the bottom of this file for the
    last audit date).
-2. Read the `review-notes-code.md`, `review-notes-tests.md`, and `refiner-notes.md` for
-   those tickets. Look for
+2. Read the `review-notes-code.md`, `review-notes-tests.md`, and `refiner-notes.md` under
+   `tickets/<slug>/` for those tickets. Look for
    findings that recur across multiple tickets — that's a signal a rule belongs in
    `AGENT_RULES.md` instead of relying on every reviewer to catch it fresh each time.
 3. Look for drift: cases where an agent's actual behavior diverged from what

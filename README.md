@@ -43,4 +43,7 @@ Then open http://localhost:5173.
 Implementation runs through an agent pipeline: plan → refine → implement → review → fix
 → PR, driven by the `/ticket` skill (`.claude/skills/ticket/`) and the agent definitions
 in `.claude/agents/`. The human's role is writing tickets and doing the final PR review —
-see `.claude/AGENT_RULES.md` for the full pipeline conventions.
+see `.claude/AGENT_RULES.md` for the full pipeline conventions. Each ticket's plan and
+review history is kept in `tickets/<slug>/` — a plain top-level directory, deliberately
+separate from `.claude/`, so working on a ticket never looks like modifying the
+pipeline's own rules.
