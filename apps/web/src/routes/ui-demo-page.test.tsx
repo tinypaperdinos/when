@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { UiDemoPage } from "./ui-demo-page";
 
 afterEach(() => {
@@ -111,5 +111,49 @@ describe("UiDemoPage", () => {
     expect((screen.getByLabelText("Choose a priority") as HTMLSelectElement).value).toBe(
       "high",
     );
+  });
+
+  it("shows the DateTimePicker demo block and is genuinely interactive (toggle + change events update what's shown)", () => {
+    render(<UiDemoPage />);
+
+    expect(
+      screen.getByRole("heading", { name: "DateTimePicker", level: 2 }),
+    ).toBeInTheDocument();
+
+    // Two examples both use the default "Date" aria-label: the first (default
+    // timeOptional, starts with no time) and the second (timeOptional=false, both
+    // fields always shown). Only the second has a "Time" input before any interaction,
+    // since the first's time field is hidden until "Add time" is checked.
+    const dateInputs = screen.getAllByLabelText("Date") as HTMLInputElement[];
+    expect(dateInputs).toHaveLength(2);
+    expect(screen.getAllByLabelText("Time")).toHaveLength(1);
+
+    fireEvent.click(screen.getByLabelText("Add time"));
+    expect(screen.getAllByLabelText("Time")).toHaveLength(2);
+
+    fireEvent.change(dateInputs[0], { target: { value: "2026-08-01" } });
+    expect(dateInputs[0].value).toBe("2026-08-01");
+
+    const timeInputs = screen.getAllByLabelText("Time") as HTMLInputElement[];
+    fireEvent.change(timeInputs[1], { target: { value: "09:30" } });
+    expect(timeInputs[1].value).toBe("09:30");
+  });
+
+  it("shows the DateRangePicker demo block seeded with a start date and reflects changes via onChange", () => {
+    render(<UiDemoPage />);
+
+    expect(
+      screen.getByRole("heading", { name: "DateRangePicker", level: 2 }),
+    ).toBeInTheDocument();
+
+    const startDate = screen.getByLabelText("Start date") as HTMLInputElement;
+    const endDate = screen.getByLabelText("End date") as HTMLInputElement;
+
+    expect(startDate.value).toBe("2026-07-26");
+    expect(endDate).toHaveAttribute("min", "2026-07-26");
+
+    fireEvent.change(startDate, { target: { value: "2026-08-01" } });
+    expect(startDate.value).toBe("2026-08-01");
+    expect(endDate).toHaveAttribute("min", "2026-08-01");
   });
 });
