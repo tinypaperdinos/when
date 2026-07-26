@@ -2,6 +2,10 @@ import { Button, type ButtonSize, type ButtonVariant } from "../components/ui/bu
 import { Section } from "../components/ui/section";
 import { Card, type CardPadding } from "../components/ui/card";
 import { Panel } from "../components/ui/panel";
+import { TextInput, type TextInputSize } from "../components/ui/text-input";
+import { Textarea } from "../components/ui/textarea";
+import { Checkbox } from "../components/ui/checkbox";
+import { Select } from "../components/ui/select";
 
 // Dev-only demo route (`/dev/ui`, registered only when `import.meta.env.DEV`) that
 // renders every component in `components/ui/` along with its variants, for visual
@@ -12,6 +16,21 @@ const variants: ButtonVariant[] = ["primary", "secondary"];
 const sizes: ButtonSize[] = ["sm", "md"];
 
 const cardPaddings: CardPadding[] = ["sm", "md"];
+
+const textInputSizes: TextInputSize[] = ["sm", "md"];
+
+function PlusIcon() {
+  return (
+    <svg className="size-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 5v14M5 12h14"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 export function UiDemoPage() {
   return (
@@ -32,6 +51,22 @@ export function UiDemoPage() {
             ))}
           </div>
         ))}
+      </section>
+
+      <section>
+        <h2>Button — icon variant</h2>
+        <p>
+          <span>{`icon / sm:`}</span>{" "}
+          <Button variant="icon" size="sm" aria-label="Add item">
+            <PlusIcon />
+          </Button>
+        </p>
+        <p>
+          <span>{`icon / md:`}</span>{" "}
+          <Button variant="icon" size="md" aria-label="Remove item">
+            <PlusIcon />
+          </Button>
+        </p>
       </section>
 
       <section>
@@ -75,6 +110,57 @@ export function UiDemoPage() {
 
         <p>neither title nor description:</p>
         <Panel>Panel body content</Panel>
+      </section>
+
+      <section>
+        <h2>TextInput</h2>
+        {textInputSizes.map((size) => (
+          <p key={size}>
+            <span>{`TextInput ${size}:`}</span>{" "}
+            <TextInput size={size} placeholder={`${size} input`} />
+          </p>
+        ))}
+        <p>
+          <span>TextInput disabled:</span>{" "}
+          <TextInput disabled placeholder="disabled input" />
+        </p>
+      </section>
+
+      <section>
+        <h2>Textarea</h2>
+        <Textarea placeholder="Notes…" defaultValue={"First line\nSecond line"} />
+      </section>
+
+      <section>
+        <h2>Checkbox</h2>
+        <p>
+          <Checkbox label="Unchecked example" />
+        </p>
+        <p>
+          <Checkbox label="Checked by default" defaultChecked />
+        </p>
+        <p>
+          <Checkbox label="Disabled example" disabled />
+        </p>
+      </section>
+
+      <section>
+        <h2>Select</h2>
+        <p>
+          <span>with placeholder:</span>{" "}
+          <Select aria-label="Choose a tag" placeholder="Choose a tag…">
+            <option value="work">Work</option>
+            <option value="personal">Personal</option>
+            <option value="errand">Errand</option>
+          </Select>
+        </p>
+        <p>
+          <span>with defaultValue:</span>{" "}
+          <Select aria-label="Choose a priority" defaultValue="high">
+            <option value="low">Low</option>
+            <option value="high">High</option>
+          </Select>
+        </p>
       </section>
     </main>
   );

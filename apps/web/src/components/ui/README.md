@@ -37,6 +37,11 @@ tags, layout primitives, etc. Not feature/page components (those live under
     soft `ring`.
   - **Corners**: slightly rounded (`rounded-sm`), not Material's heavier rounding and not
     fully square.
+  - **Field wells**: form controls (`TextInput`, `Textarea`, `Select`) use a "sunken"
+    inset shadow instead of `shadow-hard`'s "raised" offset shadow — the `shadow-input`
+    utility (a `--shadow-input` theme token defined in `index.css` as
+    `inset 2px 2px 0 0 var(--color-line)`). A field is a recessed place to type, not a
+    pressable, elevated object.
   - A fuller interactive exploration (loading spinner, a circular "complete" checkbox
     with a spring-pop + confirm ring, tag chip variants) lives in the unmerged
     `explore/page-design` reference branch — pull patterns from there as the tickets that
@@ -46,6 +51,16 @@ tags, layout primitives, etc. Not feature/page components (those live under
   `[a, b, c].filter(Boolean).join(" ")` inline — it's a plain join, not `clsx`/
   `tailwind-merge`, so it doesn't dedupe or resolve conflicting utilities; consumers are
   still responsible for not passing a `className` that conflicts with a base utility.
+  `field-base.ts` exports `fieldBaseClasses`, a shared string (border, background,
+  `shadow-input`, focus/disabled treatment) used by `TextInput`/`Textarea`/`Select` — it's
+  not a component, just a class-string module, extracted from the start since three
+  components need it (see the module's own doc comment for the fuller reasoning).
+  Deliberately excludes padding/text-size: each consumer supplies its own complete,
+  non-overlapping padding/text-size classes at the call site, the same way
+  `button.tsx`/`card.tsx`/`panel.tsx` keep size classes exclusive in their own variant
+  maps — a future field-like component should reuse `fieldBaseClasses` for the
+  size-independent styling but still supply its own padding/text-size, not assume it's
+  inherited.
 - **Demo route**: every component here must be added to the demo page
   (`src/routes/ui-demo-page.tsx`) so it stays visible for visual review at `/dev/ui`
   (dev server only). This is manual registration, not auto-discovery — when you add a

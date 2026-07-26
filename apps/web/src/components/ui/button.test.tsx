@@ -59,4 +59,49 @@ describe("Button", () => {
 
     expect(onClick).not.toHaveBeenCalled();
   });
+
+  describe("icon variant", () => {
+    for (const size of sizes) {
+      it(`renders the icon/${size} combination with an accessible name from aria-label`, () => {
+        render(
+          <Button variant="icon" size={size} aria-label="Add item">
+            <svg aria-hidden="true" />
+          </Button>,
+        );
+
+        expect(screen.getByRole("button", { name: "Add item" })).toBeInTheDocument();
+      });
+    }
+
+    it("fires onClick exactly once per click", () => {
+      const onClick = vi.fn();
+
+      render(
+        <Button variant="icon" aria-label="Add item" onClick={onClick}>
+          <svg aria-hidden="true" />
+        </Button>,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Add item" }));
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    it("respects the disabled prop and does not fire onClick when disabled", () => {
+      const onClick = vi.fn();
+
+      render(
+        <Button variant="icon" aria-label="Add item" disabled onClick={onClick}>
+          <svg aria-hidden="true" />
+        </Button>,
+      );
+
+      const button = screen.getByRole("button", { name: "Add item" });
+      expect(button).toBeDisabled();
+
+      fireEvent.click(button);
+
+      expect(onClick).not.toHaveBeenCalled();
+    });
+  });
 });

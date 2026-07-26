@@ -7,7 +7,10 @@ import { cn } from "../../lib/cn";
 // deleting and rebuilding it. See tickets/component-library-setup/plan.md §3.3 for the
 // full reasoning.
 
-export type ButtonVariant = "primary" | "secondary";
+// `icon` is icon-only (no visible text) — consumers MUST supply `aria-label` (or
+// `aria-labelledby`) so the button has an accessible name. Not type-enforced (see
+// tickets/form-primitives/plan.md §3.1); every usage in this codebase must model it.
+export type ButtonVariant = "primary" | "secondary" | "icon";
 export type ButtonSize = "sm" | "md";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -27,11 +30,19 @@ const baseClasses =
 const variantClasses: Record<ButtonVariant, string> = {
   primary: "bg-accent text-paper border-ink hover:bg-accent-dark",
   secondary: "bg-paper text-ink border-ink hover:bg-line/30",
+  // Shape-only variant (square, no visible text) — reuses secondary's color treatment
+  // rather than introducing a new palette. See tickets/form-primitives/plan.md §3.1.
+  icon: "bg-paper text-ink border-ink hover:bg-line/30",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
   sm: "px-3 py-1.5 text-sm",
   md: "px-4 py-2 text-base",
+};
+
+const iconSizeClasses: Record<ButtonSize, string> = {
+  sm: "p-1.5",
+  md: "p-2",
 };
 
 export function Button({
@@ -40,7 +51,12 @@ export function Button({
   className,
   ...props
 }: ButtonProps) {
-  const classes = cn(baseClasses, variantClasses[variant], sizeClasses[size], className);
+  const classes = cn(
+    baseClasses,
+    variantClasses[variant],
+    variant === "icon" ? iconSizeClasses[size] : sizeClasses[size],
+    className,
+  );
 
   return <button className={classes} {...props} />;
 }
