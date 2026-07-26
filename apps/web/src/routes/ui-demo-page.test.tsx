@@ -59,4 +59,57 @@ describe("UiDemoPage", () => {
     expect(screen.getByText("Edit the task below")).toBeInTheDocument();
     expect(screen.getAllByText("Panel body content")).toHaveLength(3);
   });
+
+  it("shows the Button icon variant demo block with an accessible name per size", () => {
+    render(<UiDemoPage />);
+
+    expect(
+      screen.getByRole("heading", { name: "Button — icon variant", level: 2 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add item" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove item" })).toBeInTheDocument();
+  });
+
+  it("shows icon + label combined via the existing secondary variant, no dedicated variant needed", () => {
+    render(<UiDemoPage />);
+
+    expect(
+      screen.getByRole("button", { name: "Add item to list" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the TextInput demo block with sm/md sizes and a disabled example", () => {
+    render(<UiDemoPage />);
+
+    expect(screen.getByRole("heading", { name: "TextInput", level: 2 })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("sm input")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("md input")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("disabled input")).toBeDisabled();
+  });
+
+  it("shows the Textarea demo block with placeholder and multi-line default content", () => {
+    render(<UiDemoPage />);
+
+    expect(screen.getByRole("heading", { name: "Textarea", level: 2 })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Notes…")).toHaveValue("First line\nSecond line");
+  });
+
+  it("shows the Checkbox demo block with unchecked, checked, and disabled examples", () => {
+    render(<UiDemoPage />);
+
+    expect(screen.getByRole("heading", { name: "Checkbox", level: 2 })).toBeInTheDocument();
+    expect(screen.getByLabelText("Unchecked example")).not.toBeChecked();
+    expect(screen.getByLabelText("Checked by default")).toBeChecked();
+    expect(screen.getByLabelText("Disabled example")).toBeDisabled();
+  });
+
+  it("shows the Select demo block with a placeholder example and a defaultValue example", () => {
+    render(<UiDemoPage />);
+
+    expect(screen.getByRole("heading", { name: "Select", level: 2 })).toBeInTheDocument();
+    expect((screen.getByLabelText("Choose a tag") as HTMLSelectElement).value).toBe("");
+    expect((screen.getByLabelText("Choose a priority") as HTMLSelectElement).value).toBe(
+      "high",
+    );
+  });
 });
