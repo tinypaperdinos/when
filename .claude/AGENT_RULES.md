@@ -118,6 +118,32 @@ at whichever of these happens first:
 - "Stuck" is a normal, expected outcome, not a failure to hide. Leave a clear reason in
   the relevant notes file.
 
+## Re-review scope (round 2+)
+
+When `reviewer-code`/`reviewer-tests` are called again after a fix round, scope the
+review to what changed since the last approved round — not a full re-audit. Measured
+cost of skipping this on a real ticket: two reviewers each re-running the full check
+suite and independently re-deriving the same verification, across two rounds, cost more
+combined tokens than the fix itself.
+
+- **Don't re-run `lint`/`typecheck`/`build` locally.** CI's `build` job already runs
+  `lint`, `typecheck`, `test`, and `build` on every push, and the orchestrator checks
+  `gh pr checks` before hand-off — re-running all four locally in every review round
+  duplicates a check that's already green. Running the test suite once to confirm the
+  new/changed tests pass is fine; the other three aren't needed unless the fix round
+  touched something CI wouldn't catch.
+- **Trust the prior round's approved findings.** Diff the two commits and verify only
+  what the fix round actually changed; don't re-derive earlier findings from scratch or
+  re-read every context file as if starting fresh.
+- **Don't duplicate verification across the two reviewers.** If a fix commit's message
+  already reports a manual check (e.g. mutation-testing a claim, then reverting it), one
+  reviewer reproducing it once is enough — `reviewer-code` and `reviewer-tests`
+  shouldn't both independently redo the same experiment.
+- **`reviewer-code` stays on code/design/scope-fidelity.** Spinning up a browser
+  (Playwright or otherwise) for visual QA duplicates jsdom-level test coverage and CI at
+  real cost (installing a browser binary, running a dev server) for little incremental
+  signal — only do it if a specific finding genuinely can't be confirmed any other way.
+
 ## Division of responsibility
 
 - `planner` and `plan-refiner` never write code.
