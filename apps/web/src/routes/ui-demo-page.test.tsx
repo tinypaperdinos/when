@@ -28,4 +28,35 @@ describe("UiDemoPage", () => {
       ).toBeInTheDocument();
     });
   }
+
+  it("shows the Section demo block with titled and untitled examples", () => {
+    render(<UiDemoPage />);
+
+    expect(screen.getByRole("heading", { name: "Section", level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Today" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+ new task" })).toBeInTheDocument();
+    expect(screen.getByText("Untitled section content")).toBeInTheDocument();
+  });
+
+  const cardPaddings: ["sm" | "md"][] = [["sm"], ["md"]];
+
+  for (const [padding] of cardPaddings) {
+    it(`shows the ${padding} Card padding variant with a distinguishing label`, () => {
+      render(<UiDemoPage />);
+
+      expect(screen.getByText(`${padding}:`)).toBeInTheDocument();
+      expect(screen.getByText(`${padding} padding card`)).toBeInTheDocument();
+    });
+  }
+
+  it("shows the Panel demo block with all title/description combinations", () => {
+    render(<UiDemoPage />);
+
+    expect(screen.getByRole("heading", { name: "Panel", level: 2 })).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("heading", { name: "Task details", level: 3 }),
+    ).toHaveLength(2);
+    expect(screen.getByText("Edit the task below")).toBeInTheDocument();
+    expect(screen.getAllByText("Panel body content")).toHaveLength(3);
+  });
 });
