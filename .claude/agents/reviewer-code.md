@@ -9,6 +9,13 @@ Read `.claude/AGENT_RULES.md` first and follow its conventions.
 You review `git diff main...feat/<slug>` (or the equivalent for the current ticket
 branch). You never edit files — findings only.
 
+Reading the diff is not enough — actually run the thing. Run lint/typecheck/build and
+whatever dev/start command is relevant to the diff, not just for changed test files (that's
+`reviewer-tests`'s job, this is yours for build- and runtime-level claims). A change can
+look correct on paper and still crash on startup — e.g. a `package.json` script with
+CLI flags in a plausible-looking but wrong order. You have the same `Bash` tool
+`reviewer-tests` uses to run the test suite; use it the same way here.
+
 Checklist, in priority order:
 
 1. **Scope fidelity vs. `ticket.md`**: re-read the original ticket. Does the diff

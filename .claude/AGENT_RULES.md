@@ -34,6 +34,13 @@ Decided 2026-07-25. Don't deviate from this without the human explicitly changin
 - **Calendar UI**: FullCalendar (`@fullcalendar/react`), chosen for its built-in drag-and-drop
   rescheduling. Stay on the free feature set (month/week/day/list views, drag-and-drop) —
   don't reach for resource-timeline/scheduler views, they require a paid license.
+- **`Date` fields cross the tRPC boundary as plain strings, not `Date` objects** — no
+  `superjson` (or equivalent) transformer is configured in `apps/server/src/trpc.ts` /
+  `apps/web/src/trpc.ts`, so the type inferred from `AppRouter` says `Date` but the
+  runtime value is a string. Before rendering, sorting, or calling a `Date` method on
+  `dueDate`/`date`/`createdAt`/`updatedAt`, either add `transformer: superjson` to both
+  `trpc.ts` files, or treat the value as a string explicitly (e.g. `new Date(entry.dueDate)`).
+  Full reasoning: `tickets/_audits/2026-07-26.md`.
 - **Styling** (decided 2026-07-26): Tailwind CSS. Extend the theme (colors, spacing,
   type scale, radii, etc.) as individual component/feature tickets need it — design
   choices land incrementally with the tickets that need them, not as one big future
@@ -55,6 +62,11 @@ that tree means a permission prompt for `tickets/**` reads unambiguously as "tic
 work," and a prompt under `.claude/` reads unambiguously as "pipeline config change" —
 don't blur that line by writing ticket state anywhere under `.claude/`.
 
+`tickets/_audits/<date>.md` is the one exception not tied to a ticket slug (the
+underscore prefix keeps it visually out of the way of real slugs) — `meta-auditor`'s
+full findings/reasoning per audit run, kept out of this file. See "What meta-auditor
+looks for" below.
+
 - `ticket.md` — the original scope/requirements. Never edit this. It's the source of
   truth for "did we build the right thing." If the ticket came from a GitHub issue, this
   is a short pointer (issue number + URL), not a copy of the body — read the issue with
@@ -70,7 +82,11 @@ don't blur that line by writing ticket state anywhere under `.claude/`.
   reviewer's findings. Never have two agents write to the same file in the same round.
 - `status.md` — single current state line, one of: `planning`, `refining`, `implementing`,
   `reviewing`, `fixing`, `pr-opened`, `stuck-needs-human`, `done`. Whoever transitions the
-  state updates this file.
+  state updates this file. **In practice `done` is never written** — the pipeline's last
+  write is `pr-opened`, right before `gh pr ready`; merging happens outside any agent's
+  turn. A lingering `pr-opened` after merge is expected, not a bug — don't "fix" it by
+  having some agent start writing `done` unilaterally; that's a deliberate pipeline
+  change, not a documentation fix. Full reasoning: `tickets/_audits/2026-07-26.md`.
 
 ## Committing ticket state
 
@@ -118,8 +134,19 @@ Run on demand via `/audit`, not part of the per-ticket loop. Looks across merged
 for: repeated review findings (same issue flagged across multiple tickets → add a rule
 here instead of relying on every reviewer to catch it again), drift between what agents
 actually did and what this file says they should do, and codebase conventions that
-aren't written down anywhere. Updates land in this file, dated, with a one-line reason.
+aren't written down anywhere.
+
+This file is read fresh by every agent on every ticket — keep additions short and
+distilled to "what to do." Full reasoning/evidence for each audit goes in its own file
+under `tickets/_audits/<date>.md` instead (see `.claude/agents/meta-auditor.md` for the
+exact split), which only gets read by someone deliberately digging into why a rule
+exists, not by every agent every run.
 
 ## Audit log
 
-(No audits yet — `meta-auditor` appends one line here per run.)
+One line per audit, pointing to the full write-up rather than inlining it:
+
+- **2026-07-26**: First audit (single ticket's worth of history). Added the `superjson`/
+  `Date` gap (Tech stack) and the `status.md` `done`-state clarification (Ticket state).
+  Proposed and got human confirmation to tighten `reviewer-code.md` (already applied).
+  Full findings and reasoning: `tickets/_audits/2026-07-26.md`.
