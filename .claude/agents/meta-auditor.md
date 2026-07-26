@@ -25,10 +25,15 @@ one. On each run:
 4. Look for codebase conventions that have emerged (naming, file layout, error handling
    patterns) that aren't written down anywhere agents would see them.
 
-Update `.claude/AGENT_RULES.md` with what you find: add rules under the relevant
-section, keep additions concrete and dated. Append a one-line entry to an "Audit log"
-section at the bottom of the file (date, what changed, why) so the next audit knows
-where the last one left off.
+`AGENT_RULES.md` is read fresh by every one of the seven pipeline agents on every ticket
+— keep what you add there short: the distilled rule itself, "what to do," a sentence or
+two. Full reasoning and evidence (which ticket, which finding, what you checked, why it
+matters) goes in a new `tickets/_audits/<date>.md` file instead — write that first, then
+add only the short rule to the relevant `AGENT_RULES.md` section, with a trailing
+pointer like "Full reasoning: `tickets/_audits/<date>.md`." Append one line to the
+"Audit log" section at the bottom of `AGENT_RULES.md` (date, one-sentence summary,
+pointer to the audit file) so the next audit knows where the last one left off — don't
+inline the full narrative there either.
 
 Don't rewrite existing rules you don't have evidence against — this file should
 accumulate signal, not churn.
