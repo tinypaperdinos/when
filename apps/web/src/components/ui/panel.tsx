@@ -1,4 +1,5 @@
 import { useId, type HTMLAttributes, type ReactNode } from "react";
+import { cn } from "../../lib/cn";
 
 export type PanelPadding = "md" | "lg";
 
@@ -8,7 +9,7 @@ export interface PanelProps extends Omit<HTMLAttributes<HTMLDivElement>, "title"
   padding?: PanelPadding;
 }
 
-const baseClasses = "rounded-sm border-2 border-ink bg-paper shadow-[3px_3px_0_0_#1e1d1b]";
+const baseClasses = "rounded-sm border-2 border-ink bg-paper shadow-hard";
 
 const paddingClasses: Record<PanelPadding, string> = {
   md: "p-4",
@@ -25,9 +26,7 @@ export function Panel({
 }: PanelProps) {
   const headingId = useId();
   const hasHeader = Boolean(title || description);
-  const classes = [baseClasses, paddingClasses[padding], className]
-    .filter(Boolean)
-    .join(" ");
+  const classes = cn(baseClasses, paddingClasses[padding], className);
 
   return (
     <div

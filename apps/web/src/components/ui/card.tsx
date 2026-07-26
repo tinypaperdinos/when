@@ -1,4 +1,5 @@
 import type { HTMLAttributes } from "react";
+import { cn } from "../../lib/cn";
 
 export type CardPadding = "sm" | "md";
 
@@ -6,7 +7,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   padding?: CardPadding;
 }
 
-const baseClasses = "rounded-sm border-2 border-ink bg-paper shadow-[3px_3px_0_0_#1e1d1b]";
+const baseClasses = "rounded-sm border-2 border-ink bg-paper shadow-hard";
 
 const paddingClasses: Record<CardPadding, string> = {
   sm: "p-3",
@@ -14,9 +15,7 @@ const paddingClasses: Record<CardPadding, string> = {
 };
 
 export function Card({ padding = "md", className, ...props }: CardProps) {
-  const classes = [baseClasses, paddingClasses[padding], className]
-    .filter(Boolean)
-    .join(" ");
+  const classes = cn(baseClasses, paddingClasses[padding], className);
 
   return <div className={classes} {...props} />;
 }

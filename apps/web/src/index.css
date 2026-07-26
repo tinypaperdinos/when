@@ -18,6 +18,8 @@
   --color-accent: #3d6a72;
   --color-accent-dark: #2e5158;
   --color-pop: #a85c34;
+
+  --shadow-hard: 3px 3px 0 0 var(--color-ink);
 }
 
 @layer base {

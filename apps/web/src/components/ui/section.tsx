@@ -1,4 +1,5 @@
 import { useId, type HTMLAttributes, type ReactNode } from "react";
+import { cn } from "../../lib/cn";
 
 export interface SectionProps extends Omit<HTMLAttributes<HTMLElement>, "title"> {
   title?: ReactNode;
@@ -10,7 +11,7 @@ const baseClasses = "space-y-3";
 export function Section({ title, actions, className, children, ...props }: SectionProps) {
   const headingId = useId();
   const hasHeader = Boolean(title || actions);
-  const classes = [baseClasses, className].filter(Boolean).join(" ");
+  const classes = cn(baseClasses, className);
 
   return (
     <section
