@@ -1,6 +1,6 @@
 import type { SelectHTMLAttributes } from "react";
 import { cn } from "../../lib/cn";
-import { fieldBaseClasses } from "./field-base";
+import { ChevronDownIcon } from "./chevron-down-icon";
 
 // `multiple` is Omit-ted: the custom chevron/appearance-none styling assumes a
 // single-line, single-value select — a native multi-select listbox renders as multiple
@@ -11,7 +11,7 @@ export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
 
 export function Select({ placeholder, className, children, ...props }: SelectProps) {
   const classes = cn(
-    fieldBaseClasses,
+    "field-base",
     "px-3 py-2 text-base appearance-none pr-8",
     className,
   );
@@ -23,6 +23,9 @@ export function Select({ placeholder, className, children, ...props }: SelectPro
   // and the consumer hasn't supplied their own value/defaultValue, default the select's
   // own defaultValue to "" to make the placeholder option the initially-selected one —
   // consumer-supplied value/defaultValue (spread below) still wins if present.
+  // TODO(#26): revisit this whole check — if we instead required consumers to always
+  // pass their own value/defaultValue alongside `placeholder`, this fallback could be
+  // dropped entirely.
   const defaultValue =
     placeholder !== undefined && props.value === undefined && props.defaultValue === undefined
       ? ""
@@ -38,20 +41,7 @@ export function Select({ placeholder, className, children, ...props }: SelectPro
         )}
         {children}
       </select>
-      <svg
-        className="pointer-events-none absolute inset-y-0 right-2 my-auto size-4"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M6 9l6 6 6-6"
-          stroke="var(--color-ink)"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <ChevronDownIcon className="pointer-events-none absolute inset-y-0 right-2 my-auto size-4" />
     </div>
   );
 }

@@ -1,12 +1,6 @@
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "../../lib/cn";
 
-// NOTE for issue #15 ("Component library: form primitives"): this is the real,
-// permanent Button, not a throwaway proof-of-concept — extend this file in place with
-// an `icon`/icon-only variant (and whatever else #15's scoping needs) rather than
-// deleting and rebuilding it. See tickets/component-library-setup/plan.md §3.3 for the
-// full reasoning.
-
 // `icon` is icon-only (no visible text) — consumers MUST supply `aria-label` (or
 // `aria-labelledby`) so the button has an accessible name. Not type-enforced (see
 // tickets/form-primitives/plan.md §3.1); every usage in this codebase must model it.

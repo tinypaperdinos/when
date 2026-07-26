@@ -67,6 +67,12 @@ export function UiDemoPage() {
             <PlusIcon />
           </Button>
         </p>
+        <p>
+          <span>icon + label (existing primary/secondary variant, no new variant needed):</span>{" "}
+          <Button variant="secondary" size="sm">
+            <PlusIcon /> Add item to list
+          </Button>
+        </p>
       </section>
 
       <section>

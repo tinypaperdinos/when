@@ -30,3 +30,16 @@
     color: var(--color-ink);
   }
 }
+
+@layer components {
+  /* Shared, size-independent field-well styling for TextInput/Textarea/Select — border,
+   * background, shadow-input, focus/disabled treatment. Deliberately excludes
+   * padding/text-size: each consumer supplies its own complete, non-overlapping
+   * padding/text-size classes alongside this one (see components/ui/README.md). */
+  .field-base {
+    @apply w-full rounded-sm border-2 border-ink bg-paper shadow-input outline-none
+      placeholder:text-ink/40 focus-visible:outline-dashed focus-visible:outline-2
+      focus-visible:outline-offset-2 focus-visible:outline-accent
+      disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-line/10;
+  }
+}

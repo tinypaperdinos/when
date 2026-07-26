@@ -79,7 +79,7 @@ describe("TextInput", () => {
 
     const input = screen.getByLabelText("custom");
     expect(input.className).toContain("custom-class");
-    expect(input.className).toContain("border-ink");
+    expect(input.className).toContain("field-base");
   });
 
   it("forwards arbitrary native props", () => {

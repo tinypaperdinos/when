@@ -70,6 +70,14 @@ describe("UiDemoPage", () => {
     expect(screen.getByRole("button", { name: "Remove item" })).toBeInTheDocument();
   });
 
+  it("shows icon + label combined via the existing secondary variant, no dedicated variant needed", () => {
+    render(<UiDemoPage />);
+
+    expect(
+      screen.getByRole("button", { name: "Add item to list" }),
+    ).toBeInTheDocument();
+  });
+
   it("shows the TextInput demo block with sm/md sizes and a disabled example", () => {
     render(<UiDemoPage />);
 

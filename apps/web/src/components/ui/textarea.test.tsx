@@ -52,7 +52,7 @@ describe("Textarea", () => {
 
     const textarea = screen.getByLabelText("custom");
     expect(textarea.className).toContain("custom-class");
-    expect(textarea.className).toContain("border-ink");
+    expect(textarea.className).toContain("field-base");
   });
 
   it("forwards arbitrary native props", () => {
