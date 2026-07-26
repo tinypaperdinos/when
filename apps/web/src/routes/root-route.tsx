@@ -1,5 +1,14 @@
-import { Outlet } from "@tanstack/react-router";
+import { Link, Outlet } from "@tanstack/react-router";
 
 export function RootRoute() {
-  return <Outlet />;
+  return (
+    <>
+      {import.meta.env.DEV && (
+        <p>
+          <Link to="/dev/ui">UI component library (dev only)</Link>
+        </p>
+      )}
+      <Outlet />
+    </>
+  );
 }
