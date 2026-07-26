@@ -15,13 +15,17 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const baseClasses =
-  "inline-flex items-center justify-center rounded-md font-medium transition-colors " +
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 " +
-  "disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center rounded-sm border-2 font-medium " +
+  "shadow-[3px_3px_0_0_#1e1d1b] transition-transform duration-100 ease-out " +
+  "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none " +
+  "focus-visible:outline-none focus-visible:outline-dashed focus-visible:outline-2 " +
+  "focus-visible:outline-offset-2 focus-visible:outline-accent " +
+  "disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none " +
+  "disabled:active:translate-x-0 disabled:active:translate-y-0";
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: "bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-600",
-  secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-400",
+  primary: "bg-accent text-paper border-ink hover:bg-accent-dark",
+  secondary: "bg-paper text-ink border-ink hover:bg-line/30",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

@@ -2,6 +2,7 @@ import { createRootRoute, createRoute, createRouter } from "@tanstack/react-rout
 import { RootRoute } from "./routes/root-route";
 import { TasksPage } from "./routes/tasks-page";
 import { UiDemoPage } from "./routes/ui-demo-page";
+import { DesignExplorePage } from "./routes/design-explore-page";
 
 const rootRoute = createRootRoute({
   component: RootRoute,
@@ -22,6 +23,12 @@ const devRoutes = import.meta.env.DEV
         getParentRoute: () => rootRoute,
         path: "/dev/ui",
         component: UiDemoPage,
+      }),
+      // Scratch design exploration, not a real route — see design-explore-page.tsx.
+      createRoute({
+        getParentRoute: () => rootRoute,
+        path: "/dev/design-explore",
+        component: DesignExplorePage,
       }),
     ]
   : [];

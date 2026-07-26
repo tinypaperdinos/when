@@ -1,1 +1,68 @@
 @import "tailwindcss";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/jetbrains-mono/700.css";
+
+/*
+ * Scratch design exploration (branch: explore/page-design) — not yet a ticketed
+ * decision. Direction: technical-but-playful, monospace type, outline/border-first
+ * components instead of Material-style elevation, muted (not bright) palette.
+ * See apps/web/src/routes/design-explore-page.tsx for a fuller mockup.
+ */
+@theme {
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+
+  --color-ink: #1e1d1b;
+  --color-paper: #f6f4ef;
+  --color-line: #cfc7ba;
+  --color-accent: #3d6a72;
+  --color-accent-dark: #2e5158;
+  --color-pop: #a85c34;
+
+  /* Loading spinner: 4 squares, each holds still and pulses size in sequence
+     (instant grow, slow shrink) to fake rotation without any of them moving. */
+  --animate-square-pulse: square-pulse 1.2s ease-out infinite;
+  /* Complete-checkbox: spring-overshoot pop + an expanding confirm ring. */
+  --animate-checkmark-pop: checkmark-pop 380ms ease-out forwards;
+  --animate-ring-ping: ring-ping 550ms ease-out forwards;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-mono);
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+  }
+}
+
+@keyframes square-pulse {
+  0% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(0.55);
+  }
+}
+
+@keyframes checkmark-pop {
+  0% {
+    transform: scale(0.85);
+  }
+  55% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ring-ping {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
