@@ -84,6 +84,48 @@ describe("TaskCreateForm", () => {
     });
   });
 
+  it("submits notes in the mutation payload when set", async () => {
+    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
+
+    renderTaskCreateForm(fetchImpl);
+
+    fireEvent.change(screen.getByLabelText("Task title"), {
+      target: { value: "Buy milk" },
+    });
+    fireEvent.change(screen.getByLabelText("Task notes"), {
+      target: { value: "Get oat milk" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add task" }));
+
+    await screen.findByRole("button", { name: "Add task" });
+
+    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body as string)).toEqual({
+      0: { title: "Buy milk", notes: "Get oat milk" },
+    });
+  });
+
+  it("omits notes from the mutation payload when empty or whitespace-only", async () => {
+    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
+
+    renderTaskCreateForm(fetchImpl);
+
+    fireEvent.change(screen.getByLabelText("Task title"), {
+      target: { value: "Buy milk" },
+    });
+    fireEvent.change(screen.getByLabelText("Task notes"), {
+      target: { value: "   " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add task" }));
+
+    await screen.findByRole("button", { name: "Add task" });
+
+    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body as string)).toEqual({
+      0: { title: "Buy milk" },
+    });
+  });
+
   it("does not call the mutation when the title is empty or whitespace-only", () => {
     const fetchImpl = vi.fn() as unknown as typeof fetch;
 
@@ -97,7 +139,7 @@ describe("TaskCreateForm", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it("resets both fields on success", async () => {
+  it("resets all fields on success", async () => {
     const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
 
     renderTaskCreateForm(fetchImpl);
@@ -108,12 +150,16 @@ describe("TaskCreateForm", () => {
     fireEvent.change(screen.getByLabelText("Due date"), {
       target: { value: "2026-07-26" },
     });
+    fireEvent.change(screen.getByLabelText("Task notes"), {
+      target: { value: "Get oat milk" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Add task" }));
 
     await waitFor(() =>
       expect((screen.getByLabelText("Task title") as HTMLInputElement).value).toBe(""),
     );
     expect((screen.getByLabelText("Due date") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("Task notes") as HTMLTextAreaElement).value).toBe("");
   });
 
   it("renders an inline error and preserves fields when the mutation fails", async () => {
@@ -137,11 +183,17 @@ describe("TaskCreateForm", () => {
     fireEvent.change(screen.getByLabelText("Task title"), {
       target: { value: "Buy milk" },
     });
+    fireEvent.change(screen.getByLabelText("Task notes"), {
+      target: { value: "Get oat milk" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Add task" }));
 
     expect(await screen.findByText("Title is required")).toBeInTheDocument();
     expect((screen.getByLabelText("Task title") as HTMLInputElement).value).toBe(
       "Buy milk",
+    );
+    expect((screen.getByLabelText("Task notes") as HTMLTextAreaElement).value).toBe(
+      "Get oat milk",
     );
   });
 

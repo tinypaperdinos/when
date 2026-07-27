@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "../trpc";
 import { TextInput } from "../components/ui/text-input";
+import { Textarea } from "../components/ui/textarea";
 import { Button } from "../components/ui/button";
 import { DateTimePicker, type DateTimePickerValue } from "../components/ui/date-time-picker";
 import { dueDatePayload } from "../lib/task-due-date";
@@ -12,6 +13,7 @@ export function TaskCreateForm() {
 
   const [title, setTitle] = useState("");
   const [dueDateValue, setDueDateValue] = useState<DateTimePickerValue>({ date: "" });
+  const [notes, setNotes] = useState("");
 
   const createMutation = useMutation(
     trpc.tasks.create.mutationOptions({
@@ -19,6 +21,7 @@ export function TaskCreateForm() {
         queryClient.invalidateQueries({ queryKey: trpc.tasks.list.queryKey() });
         setTitle("");
         setDueDateValue({ date: "" });
+        setNotes("");
       },
     }),
   );
@@ -32,6 +35,7 @@ export function TaskCreateForm() {
     createMutation.mutate({
       title: trimmedTitle,
       dueDate: dueDatePayload(dueDateValue),
+      notes: notes.trim() || undefined,
     });
   }
 
@@ -48,6 +52,12 @@ export function TaskCreateForm() {
         value={dueDateValue}
         onChange={setDueDateValue}
         dateLabel="Due date"
+      />
+      <Textarea
+        aria-label="Task notes"
+        placeholder="Notes…"
+        value={notes}
+        onChange={(event) => setNotes(event.target.value)}
       />
       <Button type="submit" disabled={createMutation.isPending}>
         Add task
