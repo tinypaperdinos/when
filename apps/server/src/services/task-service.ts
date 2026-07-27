@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import type { TaskCreateInput, TaskUpdateInput } from "./task-schema";
 
 export class TaskService {
   constructor(private readonly db: PrismaClient) {}
@@ -18,7 +19,7 @@ export class TaskService {
     }
   }
 
-  async create(input: { title: string; dueDate?: string; notes?: string }) {
+  async create(input: TaskCreateInput) {
     return this.db.entry.create({
       data: {
         kind: "task",
@@ -29,10 +30,7 @@ export class TaskService {
     });
   }
 
-  async update(
-    id: string,
-    input: { title?: string; dueDate?: string | null; notes?: string | null },
-  ) {
+  async update(id: string, input: TaskUpdateInput) {
     await this.assertTaskExists(id);
     return this.db.entry.update({
       where: { id },

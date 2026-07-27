@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import type { EventCreateInput, EventUpdateInput } from "./event-schema";
 
 export class EventService {
   constructor(private readonly db: PrismaClient) {}
@@ -18,7 +19,7 @@ export class EventService {
     }
   }
 
-  async create(input: { title: string; date: string; notes?: string }) {
+  async create(input: EventCreateInput) {
     return this.db.entry.create({
       data: {
         kind: "event",
@@ -29,10 +30,7 @@ export class EventService {
     });
   }
 
-  async update(
-    id: string,
-    input: { title?: string; date?: string; notes?: string | null },
-  ) {
+  async update(id: string, input: EventUpdateInput) {
     await this.assertEventExists(id);
     return this.db.entry.update({
       where: { id },
