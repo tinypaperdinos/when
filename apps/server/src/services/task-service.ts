@@ -18,17 +18,21 @@ export class TaskService {
     }
   }
 
-  async create(input: { title: string; dueDate?: string }) {
+  async create(input: { title: string; dueDate?: string; notes?: string }) {
     return this.db.entry.create({
       data: {
         kind: "task",
         title: input.title,
         dueDate: input.dueDate ? new Date(input.dueDate) : undefined,
+        notes: input.notes ? input.notes : undefined,
       },
     });
   }
 
-  async update(id: string, input: { title?: string; dueDate?: string | null }) {
+  async update(
+    id: string,
+    input: { title?: string; dueDate?: string | null; notes?: string | null },
+  ) {
     await this.assertTaskExists(id);
     return this.db.entry.update({
       where: { id },
@@ -40,6 +44,7 @@ export class TaskService {
             : input.dueDate === null
               ? null
               : new Date(input.dueDate),
+        notes: input.notes === undefined ? undefined : input.notes || null,
       },
     });
   }

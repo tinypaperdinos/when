@@ -10,12 +10,14 @@ const dueDateString = z
 const createInput = z.object({
   title: z.string().trim().min(1, "Title is required"),
   dueDate: dueDateString.optional(),
+  notes: z.string().trim().optional(),
 });
 
 const updateInput = z.object({
   id: z.string().min(1),
   title: z.string().trim().min(1, "Title is required").optional(),
   dueDate: dueDateString.nullable().optional(),
+  notes: z.string().trim().nullable().optional(),
 });
 
 const idInput = z.object({ id: z.string().min(1) });
