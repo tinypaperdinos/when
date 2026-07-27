@@ -1,32 +1,16 @@
-import { z } from "zod";
 import { router, publicProcedure } from "../trpc";
 import { db } from "../db";
 import { EventService } from "../services/event-service";
+import { idInput } from "../services/schema-helpers";
+import { eventCreateInput, eventUpdateFields } from "../services/event-schema";
 
-const eventDateString = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/, "Invalid date");
-
-const createInput = z.object({
-  title: z.string().trim().min(1, "Title is required"),
-  date: eventDateString,
-  notes: z.string().trim().optional(),
-});
-
-const updateInput = z.object({
-  id: z.string().min(1),
-  title: z.string().trim().min(1, "Title is required").optional(),
-  date: eventDateString.optional(),
-  notes: z.string().trim().nullable().optional(),
-});
-
-const idInput = z.object({ id: z.string().min(1) });
+const updateInput = idInput.merge(eventUpdateFields);
 
 export const eventsRouter = router({
   list: publicProcedure.query(() => new EventService(db).list()),
 
   create: publicProcedure
-    .input(createInput)
+    .input(eventCreateInput)
     .mutation(({ input }) => new EventService(db).create(input)),
 
   update: publicProcedure.input(updateInput).mutation(({ input }) => {
