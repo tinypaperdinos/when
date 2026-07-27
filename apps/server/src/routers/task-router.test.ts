@@ -81,6 +81,46 @@ describe("tasksRouter", () => {
         }),
       );
     });
+
+    it("trims a padded notes value before it reaches TaskService.create", async () => {
+      const row = { id: "1", title: "Buy milk", kind: "task" };
+      create.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await caller.tasks.create({ title: "Buy milk", notes: "  Get oat milk  " });
+
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ notes: "Get oat milk" }),
+        }),
+      );
+    });
+
+    it("does not reject an empty-string notes value on create, unlike title", async () => {
+      const row = { id: "1", title: "Buy milk", kind: "task" };
+      create.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.create({ title: "Buy milk", notes: "" }),
+      ).resolves.toBe(row);
+    });
+
+    it("does not reject a whitespace-only notes value on create, unlike title", async () => {
+      const row = { id: "1", title: "Buy milk", kind: "task" };
+      create.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.create({ title: "Buy milk", notes: "   " }),
+      ).resolves.toBe(row);
+    });
   });
 
   describe("update", () => {
@@ -137,6 +177,55 @@ describe("tasksRouter", () => {
         expect.objectContaining({
           where: { id: "1" },
           data: expect.objectContaining({ title: "New title" }),
+        }),
+      );
+    });
+
+    it("trims a padded notes value before it reaches TaskService.update", async () => {
+      findUnique.mockResolvedValue({ id: "1", kind: "task" });
+      const row = { id: "1", title: "Buy milk", kind: "task" };
+      update.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await caller.tasks.update({ id: "1", notes: "  Updated notes  " });
+
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "1" },
+          data: expect.objectContaining({ notes: "Updated notes" }),
+        }),
+      );
+    });
+
+    it("does not reject an empty-string or whitespace-only notes value on update, unlike title", async () => {
+      findUnique.mockResolvedValue({ id: "1", kind: "task" });
+      const row = { id: "1", title: "Buy milk", kind: "task" };
+      update.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(caller.tasks.update({ id: "1", notes: "" })).resolves.toBe(row);
+      await expect(caller.tasks.update({ id: "1", notes: "   " })).resolves.toBe(row);
+    });
+
+    it("accepts notes: null and clears existing notes via TaskService.update", async () => {
+      findUnique.mockResolvedValue({ id: "1", kind: "task", notes: "Existing notes" });
+      const row = { id: "1", title: "Buy milk", kind: "task", notes: null };
+      update.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.update({ id: "1", notes: null }),
+      ).resolves.toBe(row);
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "1" },
+          data: expect.objectContaining({ notes: null }),
         }),
       );
     });

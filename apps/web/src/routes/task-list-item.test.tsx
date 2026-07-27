@@ -113,6 +113,21 @@ describe("TaskListItem", () => {
     expect(screen.queryByText(/Due /)).not.toBeInTheDocument();
   });
 
+  it("renders notes text in the non-editing view when present", () => {
+    renderTaskListItem(
+      makeTask({ notes: "Get oat milk" }),
+      vi.fn() as unknown as typeof fetch,
+    );
+
+    expect(screen.getByText("Get oat milk")).toBeInTheDocument();
+  });
+
+  it("renders nothing extra when notes is null", () => {
+    renderTaskListItem(makeTask({ notes: null }), vi.fn() as unknown as typeof fetch);
+
+    expect(screen.queryByText("Get oat milk")).not.toBeInTheDocument();
+  });
+
   it("clicking Edit shows a title field pre-filled with the current title", () => {
     renderTaskListItem(makeTask({ title: "Buy milk" }), vi.fn() as unknown as typeof fetch);
 
@@ -121,6 +136,29 @@ describe("TaskListItem", () => {
     expect(
       (screen.getByLabelText("Edit task title") as HTMLInputElement).value,
     ).toBe("Buy milk");
+  });
+
+  it("clicking Edit shows a notes field pre-filled with the current notes", () => {
+    renderTaskListItem(
+      makeTask({ notes: "Get oat milk" }),
+      vi.fn() as unknown as typeof fetch,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(
+      (screen.getByLabelText("Edit task notes") as HTMLTextAreaElement).value,
+    ).toBe("Get oat milk");
+  });
+
+  it("clicking Edit shows an empty notes field when task.notes is null", () => {
+    renderTaskListItem(makeTask({ notes: null }), vi.fn() as unknown as typeof fetch);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(
+      (screen.getByLabelText("Edit task notes") as HTMLTextAreaElement).value,
+    ).toBe("");
   });
 
   it("Save calls update with the trimmed edited title and exits edit mode", async () => {
@@ -136,12 +174,46 @@ describe("TaskListItem", () => {
     await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({
-      0: { id: "1", title: "New title" },
+      0: { id: "1", title: "New title", notes: null },
     });
 
     await waitFor(() =>
       expect(screen.queryByLabelText("Edit task title")).not.toBeInTheDocument(),
     );
+  });
+
+  it("Save sends the trimmed notes string when notes is set", async () => {
+    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
+    renderTaskListItem(makeTask({ title: "Buy milk" }), fetchImpl);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Edit task notes"), {
+      target: { value: "  Get oat milk  " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
+    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body as string)).toEqual({
+      0: { id: "1", title: "Buy milk", notes: "Get oat milk" },
+    });
+  });
+
+  it("Save sends null for notes when the field is cleared to empty/whitespace", async () => {
+    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
+    renderTaskListItem(makeTask({ title: "Buy milk", notes: "Old notes" }), fetchImpl);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Edit task notes"), {
+      target: { value: "   " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
+    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body as string)).toEqual({
+      0: { id: "1", title: "Buy milk", notes: null },
+    });
   });
 
   it("Cancel exits edit mode without calling update and discards the typed change", () => {
@@ -157,6 +229,22 @@ describe("TaskListItem", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
     expect(screen.queryByLabelText("Edit task title")).not.toBeInTheDocument();
     expect(screen.getByText("Buy milk")).toBeInTheDocument();
+  });
+
+  it("Cancel discards a typed notes change without calling update and without mutating the read-only view", () => {
+    const fetchImpl = vi.fn() as unknown as typeof fetch;
+    renderTaskListItem(makeTask({ title: "Buy milk", notes: "Original notes" }), fetchImpl);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Edit task notes"), {
+      target: { value: "Discarded notes" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText("Edit task notes")).not.toBeInTheDocument();
+    expect(screen.getByText("Original notes")).toBeInTheDocument();
+    expect(screen.queryByText("Discarded notes")).not.toBeInTheDocument();
   });
 
   it("Delete calls delete only when window.confirm is confirmed", async () => {
@@ -205,6 +293,22 @@ describe("TaskListItem", () => {
     expect(
       (screen.getByLabelText("Edit task title") as HTMLInputElement).value,
     ).toBe("Edited title");
+  });
+
+  it("renders an inline error when update fails, staying in edit mode with editNotes preserved", async () => {
+    const fetchImpl = errorFetch("Task 1 not found");
+    renderTaskListItem(makeTask({ title: "Buy milk" }), fetchImpl);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Edit task notes"), {
+      target: { value: "Edited notes" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText(/Task 1 not found/)).toBeInTheDocument();
+    expect(
+      (screen.getByLabelText("Edit task notes") as HTMLTextAreaElement).value,
+    ).toBe("Edited notes");
   });
 
   it("renders an inline error when delete fails (confirmed), leaving the row present", async () => {

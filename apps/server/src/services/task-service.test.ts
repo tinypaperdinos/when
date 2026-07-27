@@ -124,6 +124,39 @@ describe("TaskService", () => {
         },
       });
     });
+
+    it("stores notes unchanged when provided", async () => {
+      const db = createFakeDb();
+      const service = new TaskService(db);
+
+      await service.create({ title: "Buy milk", notes: "Get oat milk" });
+
+      expect(db.entry.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ notes: "Get oat milk" }) }),
+      );
+    });
+
+    it("stores an undefined notes (Prisma persists it as null) when notes is omitted", async () => {
+      const db = createFakeDb();
+      const service = new TaskService(db);
+
+      await service.create({ title: "Buy milk" });
+
+      expect(db.entry.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ notes: undefined }) }),
+      );
+    });
+
+    it("normalizes a whitespace-only notes value to undefined rather than storing an empty string", async () => {
+      const db = createFakeDb();
+      const service = new TaskService(db);
+
+      await service.create({ title: "Buy milk", notes: "" });
+
+      expect(db.entry.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ notes: undefined }) }),
+      );
+    });
   });
 
   describe("update", () => {
@@ -183,6 +216,50 @@ describe("TaskService", () => {
         where: { id: "1" },
         data: { title: undefined, dueDate: new Date("2026-07-26") },
       });
+    });
+
+    it("leaves notes untouched (passes undefined) when notes is omitted", async () => {
+      const db = createFakeDb({ findUniqueResult: { id: "1", kind: "task" } });
+      const service = new TaskService(db);
+
+      await service.update("1", { title: "New title" });
+
+      expect(db.entry.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ notes: undefined }) }),
+      );
+    });
+
+    it("clears existing notes when notes is null", async () => {
+      const db = createFakeDb({ findUniqueResult: { id: "1", kind: "task" } });
+      const service = new TaskService(db);
+
+      await service.update("1", { notes: null });
+
+      expect(db.entry.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ notes: null }) }),
+      );
+    });
+
+    it("clears existing notes when notes is an empty string (post-trim)", async () => {
+      const db = createFakeDb({ findUniqueResult: { id: "1", kind: "task" } });
+      const service = new TaskService(db);
+
+      await service.update("1", { notes: "" });
+
+      expect(db.entry.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ notes: null }) }),
+      );
+    });
+
+    it("sets a new notes value when notes is a non-empty string", async () => {
+      const db = createFakeDb({ findUniqueResult: { id: "1", kind: "task" } });
+      const service = new TaskService(db);
+
+      await service.update("1", { notes: "Updated notes" });
+
+      expect(db.entry.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ notes: "Updated notes" }) }),
+      );
     });
   });
 

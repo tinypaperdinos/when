@@ -4,6 +4,7 @@ import { useTRPC } from "../trpc";
 import type { Task } from "../trpc";
 import { Checkbox } from "../components/ui/checkbox";
 import { TextInput } from "../components/ui/text-input";
+import { Textarea } from "../components/ui/textarea";
 import { Button } from "../components/ui/button";
 import { cn } from "../lib/cn";
 
@@ -13,6 +14,7 @@ export function TaskListItem({ task }: { task: Task }) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
+  const [editNotes, setEditNotes] = useState(task.notes ?? "");
 
   function invalidateList() {
     queryClient.invalidateQueries({ queryKey: trpc.tasks.list.queryKey() });
@@ -41,11 +43,16 @@ export function TaskListItem({ task }: { task: Task }) {
 
   function handleEditClick() {
     setEditTitle(task.title);
+    setEditNotes(task.notes ?? "");
     setIsEditing(true);
   }
 
   function handleSave() {
-    updateMutation.mutate({ id: task.id, title: editTitle.trim() });
+    updateMutation.mutate({
+      id: task.id,
+      title: editTitle.trim(),
+      notes: editNotes.trim() || null,
+    });
   }
 
   function handleCancel() {
@@ -74,6 +81,11 @@ export function TaskListItem({ task }: { task: Task }) {
             Cancel
           </Button>
         </div>
+        <Textarea
+          aria-label="Edit task notes"
+          value={editNotes}
+          onChange={(event) => setEditNotes(event.target.value)}
+        />
         {updateMutation.isError && (
           <p>Couldn&apos;t save task: {updateMutation.error.message}</p>
         )}
@@ -101,6 +113,7 @@ export function TaskListItem({ task }: { task: Task }) {
         </Button>
       </div>
       {task.dueDate && <p>Due {new Date(task.dueDate).toLocaleDateString()}</p>}
+      {task.notes && <p className="whitespace-pre-wrap">{task.notes}</p>}
       {toggleCompleteMutation.isError && (
         <p>Couldn&apos;t update task: {toggleCompleteMutation.error.message}</p>
       )}
