@@ -149,3 +149,59 @@ No new findings. Round-1 blocking finding is fully resolved with verifiable,
 non-tautological coverage.
 
 VERDICT: APPROVED
+
+## reviewer-tests — round 3
+
+Scoped to fix commit `1149555` only, per the re-review scope rule — a post-hand-off CI
+failure in `apps/web/src/routes/task-create-form.test.tsx`'s "disables the submit button
+while the mutation is pending" test, on a run that only added a docs-only `tickets/`
+commit (no feature code changed since round 2's approval).
+
+**Diff is test-only, correctly scoped:** `git show 1149555 --stat` touches exactly one
+file, `apps/web/src/routes/task-create-form.test.tsx` (+3/-2). No production code or
+other test files changed.
+
+**The fix addresses the actual race, not a symptom.** The button element is present
+with role/name "Add task" from initial render regardless of its `disabled` attribute
+(bound to `createMutation.isPending` in `task-create-form.tsx:52`), so
+`screen.findByRole("button", { name: "Add task" })` resolves as soon as the element is
+found by role/name — that resolution is not gated on `disabled` flipping false. The old
+code awaited that (irrelevant) resolution and then asserted `not.toBeDisabled()`
+immediately, once, with no retry — a genuine race against react-query's async state
+settle after `resolveFetch(...)` is called. The fix replaces the immediate assertion
+with `waitFor(() => expect(screen.getByRole(...)).not.toBeDisabled())`, which polls
+until the condition holds or times out, removing the race rather than papering over it
+(e.g. not a `sleep`/timeout bump). It also mirrors the polling pattern already used a few
+lines earlier in the same test for the `toBeDisabled()` check pre-resolve, so the two
+halves of the test are now internally consistent.
+
+**Independently verified, not just trusting the fixer's report:**
+- Ran the target test file 20 times in a loop myself post-fix:
+  `cd apps/web && npx vitest run src/routes/task-create-form.test.tsx` × 20 →
+  20/20 pass, 6/6 tests each run.
+- To sanity-check the race story itself, I temporarily restored the pre-fix (racy)
+  version of the test from `git show HEAD~1:...` into the working tree and ran it 30
+  times in the same environment: 30/30 also passed. This does **not** contradict the
+  bug report — a race this narrow (both sides resolving on microtask-scheduled work,
+  `MutationObserver` callback timing vs. React state flush) is expected to be
+  load/timing-dependent and may only surface under CI's resource contention, not
+  reliably on an idle local machine. I restored the file to the committed (fixed)
+  version afterward and confirmed `git diff` on that path is empty before continuing.
+- Given the local loop can't reproduce the failure either way, my confidence rests
+  primarily on the code-reading argument above (the old assertion truly had no
+  data-dependency forcing a wait on `disabled`, the new one does) rather than on
+  repro/no-repro run counts alone — that reasoning is airtight independent of whether
+  the flake reproduces locally.
+- `gh pr checks 31` shows `build: pass`, consistent with the fixer's reported full
+  `apps/web` suite (151/151), lint, and typecheck run.
+
+**No new issues introduced.** The change is minimal, uses an established pattern already
+present in the same file, and doesn't touch assertions' semantics (still checks the same
+final state, `not.toBeDisabled()`) — just how it gets there.
+
+Two unrelated uncommitted working-tree changes present at review time
+(`.devcontainer/devcontainer-lock.json`, `tickets/task-crud/status.md`) are pre-existing
+and out of scope for this fix commit — noted for completeness, not a finding against
+`1149555`.
+
+VERDICT: APPROVED
