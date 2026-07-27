@@ -172,7 +172,8 @@ describe("TaskCreateForm", () => {
       }),
     );
 
-    await screen.findByRole("button", { name: "Add task" });
-    expect(screen.getByRole("button", { name: "Add task" })).not.toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Add task" })).not.toBeDisabled(),
+    );
   });
 });
