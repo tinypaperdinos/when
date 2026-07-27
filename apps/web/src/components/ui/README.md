@@ -43,9 +43,10 @@ tags, layout primitives, etc. Not feature/page components (those live under
     `inset 2px 2px 0 0 var(--color-line)`). A field is a recessed place to type, not a
     pressable, elevated object.
   - A fuller interactive exploration (loading spinner, a circular "complete" checkbox
-    with a spring-pop + confirm ring, tag chip variants) lives in the unmerged
-    `explore/page-design` reference branch — pull patterns from there as the tickets that
-    need them come up, rather than re-deciding from scratch.
+    with a spring-pop + confirm ring) lives in the unmerged `explore/page-design`
+    reference branch — pull patterns from there as the tickets that need them come up,
+    rather than re-deciding from scratch. The tag chip variant that branch prototyped has
+    now landed as `Badge`'s default (`pop`) variant (`tag-input-badge` ticket).
 - **Class composition**: use the `cn` helper (`src/lib/cn.ts`) to join a component's
   base/variant classes with a consumer-supplied `className`, rather than repeating
   `[a, b, c].filter(Boolean).join(" ")` inline — it's a plain join, not `clsx`/
@@ -65,19 +66,26 @@ tags, layout primitives, etc. Not feature/page components (those live under
   (dev server only). This is manual registration, not auto-discovery — when you add a
   new component, add a section for it in `ui-demo-page.tsx` showing its variants/sizes.
 - **Composite, controlled-only components**: `DateTimePicker`/`DateRangePicker` (added
-  for the `date-time-picker` ticket) are a different shape from every other component
-  here — instead of being a thin wrapper around one native element (which gets
-  controlled-or-uncontrolled for free from that element's own `value`/`defaultValue`),
-  they compose other `ui/` primitives (`TextInput`, `Checkbox`, and — for
-  `DateRangePicker` — `DateTimePicker` itself) into a molecule with its own derived UI
-  state (e.g. "is the time field currently shown"). They are **controlled-only**:
+  for the `date-time-picker` ticket) and `TagInput` (added for the `tag-input-badge`
+  ticket) are a different shape from every other component here — instead of being a
+  thin wrapper around one native element (which gets controlled-or-uncontrolled for free
+  from that element's own `value`/`defaultValue`), they compose other `ui/` primitives
+  (`TextInput`, `Checkbox`, and — for `DateRangePicker` — `DateTimePicker` itself;
+  `TagInput` composes `TextInput` + `Badge`) into a molecule with its own derived UI
+  state (e.g. "is the time field currently shown"; for `TagInput`, the in-progress draft
+  text and whether the suggestion dropdown is open). They are **controlled-only**:
   `value`/`onChange` are always required, and there's no `defaultValue` escape hatch.
   This is a deliberate deviation from the rest of `components/ui/`, not an oversight —
   don't "fix" it back to controlled-or-uncontrolled without re-reading the reasoning in
   `tickets/date-time-picker/plan.md` §2.4 (reconciling internal state against an
   optionally-controlled external `value` for a two-plus-field composite is exactly the
   class of bug this codebase's history already warns about, e.g. `select.tsx`'s
-  `defaultValue`-fallback `TODO(#26)`, for a much simpler single-element case).
+  `defaultValue`-fallback `TODO(#26)`, for a much simpler single-element case). `TagInput`
+  differs from the other two in two ways worth knowing before touching it: its
+  autocomplete candidates come from a caller-supplied `suggestions?: string[]` prop
+  rather than pure value composition (no live tag data source lives inside it — see
+  `tickets/tag-input-badge/plan.md` §2.3), and its suggestion dropdown is a hand-rolled
+  ARIA combobox listbox rather than composed native inputs (§2.5/§3.2 of the same plan).
 
 ## Extending an existing component vs. adding a new one
 
