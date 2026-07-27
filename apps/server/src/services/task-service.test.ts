@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { TaskService } from "./task-service";
+import type { TagService } from "./tag-service";
 
 function createFakeDb(overrides: {
   findManyResult?: unknown[];
@@ -21,6 +22,15 @@ function createFakeDb(overrides: {
   } as unknown as PrismaClient;
 }
 
+// Injectable in place of a real TagService — per §3.3 of tickets/tags/plan.md, tests
+// exercise the TaskService<->TagService boundary via this fake rather than mocking
+// db.tag directly.
+function createFakeTagService(resolved: { id: string }[] = []) {
+  return {
+    resolveConnections: vi.fn().mockResolvedValue(resolved),
+  } as unknown as TagService;
+}
+
 describe("TaskService", () => {
   describe("list", () => {
     it("filters to kind: task, excluding events", async () => {
@@ -34,6 +44,17 @@ describe("TaskService", () => {
           where: { kind: "task" },
           orderBy: { dueDate: "asc" },
         }),
+      );
+    });
+
+    it("includes tags in the findMany call", async () => {
+      const db = createFakeDb({ findManyResult: [] });
+      const service = new TaskService(db);
+
+      await service.list();
+
+      expect(db.entry.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ include: { tags: true } }),
       );
     });
 
@@ -157,6 +178,49 @@ describe("TaskService", () => {
         expect.objectContaining({ data: expect.objectContaining({ notes: undefined }) }),
       );
     });
+
+    describe("tags", () => {
+      it("does not call tagService.resolveConnections when tags is omitted", async () => {
+        const db = createFakeDb();
+        const tagService = createFakeTagService();
+        const service = new TaskService(db, tagService);
+
+        await service.create({ title: "Buy milk" });
+
+        expect(tagService.resolveConnections).not.toHaveBeenCalled();
+        expect(db.entry.create).toHaveBeenCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ tags: undefined }) }),
+        );
+      });
+
+      it("does not call tagService.resolveConnections when tags is an empty array", async () => {
+        const db = createFakeDb();
+        const tagService = createFakeTagService();
+        const service = new TaskService(db, tagService);
+
+        await service.create({ title: "Buy milk", tags: [] });
+
+        expect(tagService.resolveConnections).not.toHaveBeenCalled();
+        expect(db.entry.create).toHaveBeenCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ tags: undefined }) }),
+        );
+      });
+
+      it("resolves tags and connects them when tags is non-empty", async () => {
+        const db = createFakeDb();
+        const tagService = createFakeTagService([{ id: "tag-1" }]);
+        const service = new TaskService(db, tagService);
+
+        await service.create({ title: "Buy milk", tags: ["urgent"] });
+
+        expect(tagService.resolveConnections).toHaveBeenCalledWith(["urgent"]);
+        expect(db.entry.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ tags: { connect: [{ id: "tag-1" }] } }),
+          }),
+        );
+      });
+    });
   });
 
   describe("update", () => {
@@ -260,6 +324,51 @@ describe("TaskService", () => {
       expect(db.entry.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ notes: "Updated notes" }) }),
       );
+    });
+
+    describe("tags", () => {
+      it("does not call tagService.resolveConnections when tags is omitted, leaving existing associations untouched", async () => {
+        const db = createFakeDb({ findUniqueResult: { id: "1", kind: "task" } });
+        const tagService = createFakeTagService();
+        const service = new TaskService(db, tagService);
+
+        await service.update("1", { title: "New title" });
+
+        expect(tagService.resolveConnections).not.toHaveBeenCalled();
+        expect(db.entry.update).toHaveBeenCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ tags: undefined }) }),
+        );
+      });
+
+      it("calls tagService.resolveConnections with [] and explicitly clears all tags when tags is an empty array", async () => {
+        const db = createFakeDb({ findUniqueResult: { id: "1", kind: "task" } });
+        const tagService = createFakeTagService([]);
+        const service = new TaskService(db, tagService);
+
+        await service.update("1", { tags: [] });
+
+        expect(tagService.resolveConnections).toHaveBeenCalledWith([]);
+        expect(db.entry.update).toHaveBeenCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ tags: { set: [] } }) }),
+        );
+      });
+
+      it("resolves and sets the given tags when tags is a non-empty array", async () => {
+        const db = createFakeDb({ findUniqueResult: { id: "1", kind: "task" } });
+        const tagService = createFakeTagService([{ id: "tag-1" }, { id: "tag-2" }]);
+        const service = new TaskService(db, tagService);
+
+        await service.update("1", { tags: ["urgent", "home"] });
+
+        expect(tagService.resolveConnections).toHaveBeenCalledWith(["urgent", "home"]);
+        expect(db.entry.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              tags: { set: [{ id: "tag-1" }, { id: "tag-2" }] },
+            }),
+          }),
+        );
+      });
     });
   });
 
