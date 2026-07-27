@@ -58,7 +58,7 @@ describe("TaskService", () => {
   });
 
   describe("create", () => {
-    it("trims a padded title before persisting", async () => {
+    it("passes the title through unchanged — trimming happens upstream in the router's Zod schema, tested in task-router.test.ts", async () => {
       const db = createFakeDb();
       const service = new TaskService(db);
 

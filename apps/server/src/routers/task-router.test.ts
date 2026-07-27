@@ -57,6 +57,30 @@ describe("tasksRouter", () => {
       await expect(caller.tasks.create({ title: "" })).rejects.toThrow();
       expect(create).not.toHaveBeenCalled();
     });
+
+    it("rejects a whitespace-only title", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(caller.tasks.create({ title: "   " })).rejects.toThrow();
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it("trims a padded title before it reaches TaskService.create", async () => {
+      const row = { id: "1", title: "Buy milk", kind: "task" };
+      create.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await caller.tasks.create({ title: "  Buy milk  " });
+
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ title: "Buy milk" }),
+        }),
+      );
+    });
   });
 
   describe("update", () => {
@@ -87,6 +111,34 @@ describe("tasksRouter", () => {
         caller.tasks.update({ id: "1", dueDate: "07/26/2026" }),
       ).rejects.toThrow();
       expect(update).not.toHaveBeenCalled();
+    });
+
+    it("rejects a whitespace-only title", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.update({ id: "1", title: "   " }),
+      ).rejects.toThrow();
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it("trims a padded title before it reaches TaskService.update", async () => {
+      findUnique.mockResolvedValue({ id: "1", kind: "task" });
+      const row = { id: "1", title: "New title", kind: "task" };
+      update.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await caller.tasks.update({ id: "1", title: "  New title  " });
+
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "1" },
+          data: expect.objectContaining({ title: "New title" }),
+        }),
+      );
     });
   });
 
