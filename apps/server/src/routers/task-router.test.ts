@@ -210,6 +210,25 @@ describe("tasksRouter", () => {
       await expect(caller.tasks.update({ id: "1", notes: "" })).resolves.toBe(row);
       await expect(caller.tasks.update({ id: "1", notes: "   " })).resolves.toBe(row);
     });
+
+    it("accepts notes: null and clears existing notes via TaskService.update", async () => {
+      findUnique.mockResolvedValue({ id: "1", kind: "task", notes: "Existing notes" });
+      const row = { id: "1", title: "Buy milk", kind: "task", notes: null };
+      update.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.update({ id: "1", notes: null }),
+      ).resolves.toBe(row);
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "1" },
+          data: expect.objectContaining({ notes: null }),
+        }),
+      );
+    });
   });
 
   describe("toggleComplete", () => {
