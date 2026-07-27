@@ -156,4 +156,47 @@ describe("UiDemoPage", () => {
     expect(startDate.value).toBe("2026-08-01");
     expect(endDate).toHaveAttribute("min", "2026-08-01");
   });
+
+  it("shows the Badge demo block with each variant's hashtag-styled sample text", () => {
+    render(<UiDemoPage />);
+
+    expect(screen.getByRole("heading", { name: "Badge", level: 2 })).toBeInTheDocument();
+    expect(screen.getByText("pop:")).toBeInTheDocument();
+    expect(screen.getByText("#backend")).toBeInTheDocument();
+    expect(screen.getByText("accent:")).toBeInTheDocument();
+    expect(screen.getByText("#personal")).toBeInTheDocument();
+    expect(screen.getByText("neutral:")).toBeInTheDocument();
+    expect(screen.getByText("#urgent")).toBeInTheDocument();
+  });
+
+  it("shows the TagInput demo block and is genuinely interactive (seeded, freeform, and disabled examples)", () => {
+    render(<UiDemoPage />);
+
+    expect(screen.getByRole("heading", { name: "TagInput", level: 2 })).toBeInTheDocument();
+
+    // Seeded example: existing chips reachable via their remove-button accessible name.
+    expect(screen.getByRole("button", { name: "Remove work" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove urgent" })).toBeInTheDocument();
+
+    // Typing into the seeded example's input surfaces a matching, not-already-selected
+    // suggestion as a reachable option.
+    const seededInput = screen.getByLabelText("Tags") as HTMLInputElement;
+    fireEvent.change(seededInput, { target: { value: "back" } });
+    const backendOption = screen.getByRole("option", { name: "backend" });
+    expect(backendOption).toBeInTheDocument();
+    fireEvent.click(backendOption.querySelector("button") as HTMLButtonElement);
+    expect(screen.getByRole("button", { name: "Remove backend" })).toBeInTheDocument();
+
+    // Freeform example: no suggestions supplied, so typing never renders a listbox, even
+    // for text that would otherwise match another example's suggestions.
+    const freeformInput = screen.getByLabelText("Freeform tags") as HTMLInputElement;
+    fireEvent.change(freeformInput, { target: { value: "work" } });
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    // Disabled example: chips still render, but the remove button is disabled.
+    const disabledInput = screen.getByLabelText("Disabled tags");
+    expect(disabledInput).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remove errand" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remove frontend" })).toBeDisabled();
+  });
 });

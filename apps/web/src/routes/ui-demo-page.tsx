@@ -9,6 +9,8 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Select } from "../components/ui/select";
 import { DateTimePicker, type DateTimePickerValue } from "../components/ui/date-time-picker";
 import { DateRangePicker, type DateRangeValue } from "../components/ui/date-range-picker";
+import { Badge, type BadgeVariant } from "../components/ui/badge";
+import { TagInput } from "../components/ui/tag-input";
 
 // Dev-only demo route (`/dev/ui`, registered only when `import.meta.env.DEV`) that
 // renders every component in `components/ui/` along with its variants, for visual
@@ -21,6 +23,15 @@ const sizes: ButtonSize[] = ["sm", "md"];
 const cardPaddings: CardPadding[] = ["sm", "md"];
 
 const textInputSizes: TextInputSize[] = ["sm", "md"];
+
+const badgeVariants: BadgeVariant[] = ["pop", "accent", "neutral"];
+const badgeSampleText: Record<BadgeVariant, string> = {
+  pop: "#backend",
+  accent: "#personal",
+  neutral: "#urgent",
+};
+
+const tagSuggestions = ["work", "urgent", "personal", "errand", "backend", "frontend"];
 
 function PlusIcon() {
   return (
@@ -48,6 +59,11 @@ export function UiDemoPage() {
     start: { date: "2026-07-26" },
     end: { date: "" },
   });
+
+  // TagInput is controlled-only, same reasoning as DateTimePicker/DateRangePicker above.
+  const [seededTags, setSeededTags] = useState<string[]>(["work", "urgent"]);
+  const [freeformTags, setFreeformTags] = useState<string[]>([]);
+  const [disabledTags, setDisabledTags] = useState<string[]>(["errand", "frontend"]);
 
   return (
     <main>
@@ -205,6 +221,34 @@ export function UiDemoPage() {
           guardrail:
         </p>
         <DateRangePicker value={eventRange} onChange={setEventRange} />
+      </section>
+
+      <section>
+        <h2>Badge</h2>
+        {badgeVariants.map((variant) => (
+          <p key={variant}>
+            <span>{`${variant}:`}</span>{" "}
+            <Badge variant={variant}>{badgeSampleText[variant]}</Badge>
+          </p>
+        ))}
+      </section>
+
+      <section>
+        <h2>TagInput</h2>
+        <p>seeded with tags + suggestions (some overlapping the seeded tags):</p>
+        <TagInput value={seededTags} onChange={setSeededTags} suggestions={tagSuggestions} />
+
+        <p>no suggestions supplied — pure freeform tag creation:</p>
+        <TagInput value={freeformTags} onChange={setFreeformTags} label="Freeform tags" />
+
+        <p>disabled:</p>
+        <TagInput
+          value={disabledTags}
+          onChange={setDisabledTags}
+          suggestions={tagSuggestions}
+          label="Disabled tags"
+          disabled
+        />
       </section>
     </main>
   );
