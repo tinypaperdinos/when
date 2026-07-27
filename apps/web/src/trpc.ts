@@ -11,3 +11,11 @@ export const trpcClient = createTRPCClient<AppRouter>({
     }),
   ],
 });
+
+// Derived from `AppRouter`'s real inferred output rather than a hand-written
+// interface (see AGENT_RULES.md: "never hand-write a manual type for API
+// responses"). Reminder: `Task["dueDate"]`'s inferred type is `Date | null`, but
+// the runtime value crossing the tRPC boundary is a string (no `superjson`
+// transformer configured) — always `new Date(task.dueDate)` before calling any
+// `Date` method on it.
+export type Task = Awaited<ReturnType<typeof trpcClient.tasks.list.query>>[number];

@@ -1,12 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findMany = vi.fn();
+const findUnique = vi.fn();
+const create = vi.fn();
+const update = vi.fn();
+const del = vi.fn();
 
 vi.mock("../db", () => ({
   db: {
-    entry: { findMany },
+    entry: { findMany, findUnique, create, update, delete: del },
   },
 }));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe("tasksRouter", () => {
   it("wires the router to TaskService.list() via createCaller", async () => {
@@ -22,5 +30,167 @@ describe("tasksRouter", () => {
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { kind: "task" } }),
     );
+  });
+
+  describe("create", () => {
+    it("wires the router to TaskService.create() via createCaller", async () => {
+      const row = { id: "1", title: "Buy milk", kind: "task" };
+      create.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      const result = await caller.tasks.create({ title: "Buy milk" });
+
+      expect(result).toBe(row);
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ kind: "task", title: "Buy milk" }),
+        }),
+      );
+    });
+
+    it("rejects an empty title", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(caller.tasks.create({ title: "" })).rejects.toThrow();
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a whitespace-only title", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(caller.tasks.create({ title: "   " })).rejects.toThrow();
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it("trims a padded title before it reaches TaskService.create", async () => {
+      const row = { id: "1", title: "Buy milk", kind: "task" };
+      create.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await caller.tasks.create({ title: "  Buy milk  " });
+
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ title: "Buy milk" }),
+        }),
+      );
+    });
+  });
+
+  describe("update", () => {
+    it("wires the router to TaskService.update() via createCaller", async () => {
+      findUnique.mockResolvedValue({ id: "1", kind: "task" });
+      const row = { id: "1", title: "New title", kind: "task" };
+      update.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      const result = await caller.tasks.update({ id: "1", title: "New title" });
+
+      expect(result).toBe(row);
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "1" },
+          data: expect.objectContaining({ title: "New title" }),
+        }),
+      );
+    });
+
+    it("rejects a malformed dueDate string", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.update({ id: "1", dueDate: "07/26/2026" }),
+      ).rejects.toThrow();
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it("rejects a whitespace-only title", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.update({ id: "1", title: "   " }),
+      ).rejects.toThrow();
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it("trims a padded title before it reaches TaskService.update", async () => {
+      findUnique.mockResolvedValue({ id: "1", kind: "task" });
+      const row = { id: "1", title: "New title", kind: "task" };
+      update.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await caller.tasks.update({ id: "1", title: "  New title  " });
+
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "1" },
+          data: expect.objectContaining({ title: "New title" }),
+        }),
+      );
+    });
+  });
+
+  describe("toggleComplete", () => {
+    it("wires the router to TaskService.toggleComplete() via createCaller", async () => {
+      findUnique.mockResolvedValue({ id: "1", kind: "task" });
+      const row = { id: "1", completed: true, kind: "task" };
+      update.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      const result = await caller.tasks.toggleComplete({ id: "1", completed: true });
+
+      expect(result).toBe(row);
+      expect(update).toHaveBeenCalledWith({
+        where: { id: "1" },
+        data: { completed: true },
+      });
+    });
+
+    it("rejects a missing completed value", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.toggleComplete({ id: "1" } as never),
+      ).rejects.toThrow();
+      expect(update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("delete", () => {
+    it("wires the router to TaskService.delete() via createCaller", async () => {
+      findUnique.mockResolvedValue({ id: "1", kind: "task" });
+      del.mockResolvedValue({ id: "1" });
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      const result = await caller.tasks.delete({ id: "1" });
+
+      expect(result).toEqual({ id: "1" });
+      expect(del).toHaveBeenCalledWith({ where: { id: "1" } });
+    });
+
+    it("rejects an empty id", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(caller.tasks.delete({ id: "" })).rejects.toThrow();
+      expect(del).not.toHaveBeenCalled();
+    });
   });
 });

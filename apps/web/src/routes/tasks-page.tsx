@@ -1,27 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "../trpc";
+import { TaskCreateForm } from "./task-create-form";
+import { TaskListItem } from "./task-list-item";
 
 export function TasksPage() {
   const trpc = useTRPC();
   const { data, isLoading, isError } = useQuery(trpc.tasks.list.queryOptions());
 
-  if (isLoading) {
-    return <p>Loading tasks…</p>;
-  }
-
-  if (isError) {
-    return <p>Something went wrong loading tasks.</p>;
-  }
-
-  if (!data || data.length === 0) {
-    return <p>No tasks yet</p>;
-  }
-
   return (
-    <ul>
-      {data.map((task) => (
-        <li key={task.id}>{task.title}</li>
-      ))}
-    </ul>
+    <>
+      <TaskCreateForm />
+      {isLoading && <p>Loading tasks…</p>}
+      {isError && <p>Something went wrong loading tasks.</p>}
+      {!isLoading && !isError && (!data || data.length === 0) && <p>No tasks yet</p>}
+      {!isLoading && !isError && data && data.length > 0 && (
+        <ul>
+          {data.map((task) => (
+            <TaskListItem key={task.id} task={task} />
+          ))}
+        </ul>
+      )}
+    </>
   );
 }
