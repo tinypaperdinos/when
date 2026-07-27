@@ -121,6 +121,16 @@ describe("tasksRouter", () => {
         caller.tasks.create({ title: "Buy milk", notes: "   " }),
       ).resolves.toBe(row);
     });
+
+    it("rejects a malformed dueDate string", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.create({ title: "Buy milk", dueDate: "07/26/2026" }),
+      ).rejects.toThrow();
+      expect(create).not.toHaveBeenCalled();
+    });
   });
 
   describe("update", () => {
@@ -226,6 +236,25 @@ describe("tasksRouter", () => {
         expect.objectContaining({
           where: { id: "1" },
           data: expect.objectContaining({ notes: null }),
+        }),
+      );
+    });
+
+    it("accepts dueDate: null and clears the existing due date via TaskService.update", async () => {
+      findUnique.mockResolvedValue({ id: "1", kind: "task", dueDate: new Date("2026-07-26") });
+      const row = { id: "1", title: "Buy milk", kind: "task", dueDate: null };
+      update.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.update({ id: "1", dueDate: null }),
+      ).resolves.toBe(row);
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "1" },
+          data: expect.objectContaining({ dueDate: null }),
         }),
       );
     });

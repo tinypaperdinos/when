@@ -194,6 +194,16 @@ describe("eventsRouter", () => {
         }),
       );
     });
+
+    it("rejects date: null — unlike task's dueDate, an event's date is not nullable", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.events.update({ id: "1", date: null } as never),
+      ).rejects.toThrow();
+      expect(update).not.toHaveBeenCalled();
+    });
   });
 
   describe("delete", () => {
