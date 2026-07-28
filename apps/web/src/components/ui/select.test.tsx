@@ -35,6 +35,24 @@ describe("Select", () => {
     expect(screen.getByRole("button", { name: "fruit" })).toHaveTextContent("Banana");
   });
 
+  it("uncontrolled (no value prop): clicking a different option updates the trigger's own displayed label via internal state, with no onChange required", () => {
+    render(
+      <Select aria-label="fruit" defaultValue="a">
+        <option value="a">Apple</option>
+        <option value="b">Banana</option>
+      </Select>,
+    );
+
+    const trigger = screen.getByRole("button", { name: "fruit" });
+    expect(trigger).toHaveTextContent("Apple");
+
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("option", { name: "Banana" }));
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(trigger).toHaveTextContent("Banana");
+  });
+
   it("value (controlled): clicking the trigger opens the popup; clicking an option calls onChange once and closes; the trigger's label only updates once the consumer feeds the new value back in", () => {
     const onChange = vi.fn();
     const { rerender } = render(
