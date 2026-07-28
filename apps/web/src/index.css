@@ -21,6 +21,10 @@
 
   --shadow-hard: 3px 3px 0 0 var(--color-ink);
   --shadow-input: inset 2px 2px 0 0 var(--color-line);
+
+  /* Loading spinner: 4 squares, each holds still and pulses size in sequence
+     (instant grow, slow shrink) to fake rotation without any of them moving. */
+  --animate-square-pulse: square-pulse 1.2s ease-out infinite;
 }
 
 @layer base {
@@ -28,6 +32,15 @@
     font-family: var(--font-mono);
     background-color: var(--color-paper);
     color: var(--color-ink);
+  }
+}
+
+@keyframes square-pulse {
+  0% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(0.55);
   }
 }
 

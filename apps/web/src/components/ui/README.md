@@ -87,6 +87,33 @@ tags, layout primitives, etc. Not feature/page components (those live under
   `tickets/tag-input-badge/plan.md` §2.3), and its suggestion dropdown is a hand-rolled
   ARIA combobox listbox rather than composed native inputs (§2.5/§3.2 of the same plan).
 
+- **Portal + focus-trap components**: `Modal` (added for the `feedback-components`
+  ticket) is a third shape, alongside "thin native wrapper" (`Button`/`TextInput`/etc.)
+  and "composite, controlled-only value component" (above). It's `createPortal`-rendered
+  into `document.body` (this codebase's first use of a portal) rather than in-place, so a
+  future `overflow-hidden` ancestor can't clip it. It's hand-rolled (`role="dialog"` +
+  manual focus trap + Escape listener), not the native `<dialog>` element and not a new
+  npm dependency — same "hand-roll the ARIA widget behavior" precedent `TagInput`
+  established. Controlled-only (`isOpen`/`onClose`), `title` required (unlike `Panel`,
+  where it's optional — a dialog that interrupts the whole page needs an accessible name
+  essentially always). Notable mechanics, in case a future overlay component needs the
+  same patterns:
+  - The `Escape` listener is attached to `document`, not the panel node, since there's a
+    real window right after open where focus hasn't moved into the panel yet and a
+    panel-scoped (bubbling-dependent) listener would miss the keypress.
+  - Backdrop-click-to-close tracks the `mousedown` target in a `ref` and cross-references
+    it against the `click` target, rather than trusting `click`'s `target` alone — a
+    `click` event's `target` resolves from where `mouseup` fires, so a text-selection
+    drag starting inside the panel and releasing past its edge would otherwise be
+    misread as a backdrop click.
+  - `z-50` is this codebase's first "overlay" z-index (backdrop and panel both), chosen
+    to sit above `TagInput`'s `z-10` suggestion dropdown (so a `TagInput` inside a
+    future form-in-`Modal` still renders its dropdown above the modal's own panel) with
+    headroom left below it for a future second overlay layer (toast, nested modal).
+  - The panel is capped at `max-w-lg`/`max-h-[85vh]` with `overflow-y-auto`, so content
+    taller than the viewport scrolls internally instead of pushing the close button
+    off-screen. Full reasoning: `tickets/feedback-components/plan.md` §2.3–2.6.
+
 ## Extending an existing component vs. adding a new one
 
 If a later ticket needs a new variant of a component that already exists here (e.g. an

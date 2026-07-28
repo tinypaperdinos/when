@@ -199,4 +199,64 @@ describe("UiDemoPage", () => {
     expect(screen.getByRole("button", { name: "Remove errand" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Remove frontend" })).toBeDisabled();
   });
+
+  it("shows the Spinner demo block with sm and md sizes", () => {
+    render(<UiDemoPage />);
+
+    expect(screen.getByRole("heading", { name: "Spinner", level: 2 })).toBeInTheDocument();
+    expect(screen.getByText("Spinner sm:")).toBeInTheDocument();
+    expect(screen.getByText("Spinner md:")).toBeInTheDocument();
+  });
+
+  it("shows the LoadingState demo block with a default-label example and a custom-label example", () => {
+    render(<UiDemoPage />);
+
+    expect(
+      screen.getByRole("heading", { name: "LoadingState", level: 2 }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Loading…")).toBeInTheDocument();
+    expect(screen.getByText("Loading tasks…")).toBeInTheDocument();
+    expect(screen.getAllByRole("status")).toHaveLength(2);
+  });
+
+  it("shows the EmptyState demo block with a title-only example and a full example", () => {
+    render(<UiDemoPage />);
+
+    expect(
+      screen.getByRole("heading", { name: "EmptyState", level: 2 }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { name: "No tasks yet", level: 3 })).toHaveLength(2);
+    expect(
+      screen.getByText("Create your first task to get started."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+ add a task" })).toBeInTheDocument();
+  });
+
+  it("shows the Modal demo block and is genuinely interactive (trigger opens it, close button closes it)", () => {
+    render(<UiDemoPage />);
+
+    expect(screen.getByRole("heading", { name: "Modal", level: 2 })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open modal" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Edit task" });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByText("Modal body content goes here.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows the Modal demo block closing via Escape", () => {
+    render(<UiDemoPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open modal" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
 });
