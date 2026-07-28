@@ -7,9 +7,8 @@ export interface LoadingStateProps extends HTMLAttributes<HTMLDivElement> {
   size?: SpinnerSize; // forwarded to Spinner, default "md"
 }
 
-// Accessible surface around Spinner: role="status" + aria-live="polite", wrapping the
-// (aria-hidden) Spinner and a visible label that doubles as the live region's announced
-// text — no separate visually-hidden text needed, the label is always rendered.
+// The visible label doubles as the live region's announced text, so no separate
+// visually-hidden text is needed.
 export function LoadingState({
   label = "Loading…",
   size = "md",

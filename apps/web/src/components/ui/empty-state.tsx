@@ -8,10 +8,7 @@ export interface EmptyStateProps extends Omit<HTMLAttributes<HTMLDivElement>, "t
   action?: ReactNode; // e.g. a <Button>
 }
 
-// Strictly presentational — no isEmpty/data prop, no knowledge of *why* something is
-// empty; the consumer still owns that condition (matches Badge's precedent, issue #17).
-// Reuses Panel's role="region" + aria-labelledby landmark pattern, applied
-// unconditionally since title is required here (unlike Panel, where it's optional).
+// Presentational only — no isEmpty/data prop; the consumer decides why it's empty.
 export function EmptyState({
   icon,
   title,

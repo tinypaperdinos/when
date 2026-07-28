@@ -14,19 +14,16 @@ import { Button } from "./button";
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: ReactNode; // required — a dialog that interrupts the whole page needs an
-  // accessible name essentially always (deliberate deviation from Panel's optional
-  // title — see tickets/feedback-components/plan.md §2.3).
+  title: ReactNode; // required — unlike Panel, a dialog needs an accessible name
   description?: ReactNode;
   children: ReactNode;
   className?: string; // applied to the dialog panel, not the backdrop
   closeOnBackdropClick?: boolean; // default true
   closeOnEscape?: boolean; // default true
-  initialFocusRef?: RefObject<HTMLElement | null>; // see §2.6
+  initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
-// Standard focusable-selector list, queried live (not cached once) since modal body
-// content can itself change (e.g. a form with a conditionally-rendered field).
+// Queried live, not cached, since modal body content can change (e.g. conditional fields).
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -34,10 +31,8 @@ function getFocusable(panel: HTMLElement): HTMLElement[] {
   return Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
 }
 
-// Hand-rolled role="dialog" + createPortal, not native <dialog>, not a new dependency —
-// consistent with TagInput's precedent of hand-rolling ARIA widget behavior rather than
-// reaching for a library (components/ui/README.md, tickets/feedback-components/plan.md
-// §2.3). Controlled-only (isOpen/onClose), no defaultOpen escape hatch.
+// Hand-rolled role="dialog" + createPortal rather than native <dialog>, matching
+// TagInput's precedent (components/ui/README.md). Controlled-only, no defaultOpen.
 export function Modal({
   isOpen,
   onClose,
@@ -50,21 +45,15 @@ export function Modal({
   initialFocusRef,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
-  // Tracks whether the most recent backdrop mousedown itself landed directly on the
-  // backdrop (not a panel descendant) — a ref, not state, since it doesn't need a
-  // re-render. See §2.5: a click event's target is resolved from mouseup, not
-  // mousedown, so a text-selection drag starting inside the panel and releasing past
-  // its edge would otherwise be misread as a backdrop click.
+  // Whether the mousedown that started this click landed on the backdrop itself, not a
+  // panel descendant — otherwise a text-selection drag released outside the panel would
+  // misfire as a backdrop click.
   const backdropMouseDownOnSelfRef = useRef(false);
   const titleId = useId();
   const descriptionId = useId();
 
-  // Escape: a document-level listener, not panel-scoped. There's a real window between
-  // open and the focus-effect below completing where document.activeElement is still
-  // the external trigger element; a panel-scoped handler (relying on bubbling from
-  // whatever currently has focus) would silently miss Escape presses in that window.
-  // Hooks run unconditionally (rules-of-hooks) — every effect no-ops internally when
-  // isOpen is false rather than being skipped via an early return before the hooks run.
+  // Document-level, not panel-scoped: right after open, focus is still on the external
+  // trigger element, so a panel-scoped listener would miss Escape presses in that window.
   useEffect(() => {
     if (!isOpen || !closeOnEscape) return;
 
@@ -76,9 +65,7 @@ export function Modal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, closeOnEscape, onClose]);
 
-  // Initial focus on open + focus restore on close/unmount. The cleanup below fires
-  // both when isOpen flips back to false and when the component unmounts while still
-  // open — same cleanup function covers both paths.
+  // Cleanup restores focus on both close and unmount-while-open.
   useEffect(() => {
     if (!isOpen) return;
 
@@ -95,8 +82,8 @@ export function Modal({
     };
   }, [isOpen, initialFocusRef]);
 
-  // Background scroll lock — cleanup restores the previously captured inline value
-  // (not a hardcoded ""), in case something else already had an opinion on overflow.
+  // Restores the previously captured inline value, not a hardcoded "", in case
+  // something else already had an opinion on overflow.
   useEffect(() => {
     if (!isOpen) return;
 
@@ -123,9 +110,7 @@ export function Modal({
     }
   }
 
-  // Focus trap: fully driven by this handler calling .focus() explicitly, not the
-  // browser's native Tab-key focus movement — recomputes first/last focusable
-  // descendants on every keypress (same live-query reasoning as above).
+  // Focus trap driven by explicit .focus() calls, not native Tab movement.
   function handlePanelKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     if (event.key !== "Tab" || !panelRef.current) return;
 

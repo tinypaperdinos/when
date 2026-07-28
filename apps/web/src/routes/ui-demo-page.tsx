@@ -16,10 +16,8 @@ import { LoadingState } from "../components/ui/loading-state";
 import { EmptyState } from "../components/ui/empty-state";
 import { Modal } from "../components/ui/modal";
 
-// Dev-only demo route (`/dev/ui`, registered only when `import.meta.env.DEV`) that
-// renders every component in `components/ui/` along with its variants, for visual
-// review while running the dev server. See `components/ui/README.md` for the
-// convention: every new component here must get a section added below.
+// Dev-only demo route (`/dev/ui`, registered only when `import.meta.env.DEV`).
+// See `components/ui/README.md`: every new component here needs a section below.
 
 const variants: ButtonVariant[] = ["primary", "secondary"];
 const sizes: ButtonSize[] = ["sm", "md"];
@@ -70,7 +68,6 @@ export function UiDemoPage() {
   const [seededTags, setSeededTags] = useState<string[]>(["work", "urgent"]);
   const [freeformTags, setFreeformTags] = useState<string[]>([]);
   const [disabledTags, setDisabledTags] = useState<string[]>(["errand", "frontend"]);
-
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [controlledFruit, setControlledFruit] = useState("");
