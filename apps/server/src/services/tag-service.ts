@@ -17,9 +17,18 @@ export class TagService {
   // preserving the caller's casing. De-dupes the input list the same way. See
   // tickets/tags/plan.md §2.3 for the reasoning and the known concurrent-create limitation.
   async resolveConnections(names: string[]): Promise<{ id: string }[]> {
+    // A plain `new Set(names)` dedupes case-sensitively, so "Work" and "work" would
+    // both survive — the Set here tracks lowercased keys instead, to dedupe the same
+    // way resolveConnections matches against existing tags, while still preserving
+    // the first-seen casing in `deduped`.
+    const seen = new Set<string>();
     const deduped: string[] = [];
     for (const name of names) {
-      if (!deduped.some((d) => d.toLowerCase() === name.toLowerCase())) deduped.push(name);
+      const key = name.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduped.push(name);
+      }
     }
     if (deduped.length === 0) return [];
 
