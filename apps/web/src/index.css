@@ -20,6 +20,7 @@
   --color-pop: #a85c34;
 
   --shadow-hard: 3px 3px 0 0 var(--color-ink);
+  --shadow-float: 6px 6px 0 0 var(--color-ink);
   --shadow-input: inset 2px 2px 0 0 var(--color-line);
 }
 

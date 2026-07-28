@@ -101,4 +101,14 @@ describe("Panel", () => {
     expect(screen.getByTestId("panel")).toBeInTheDocument();
     expect(container.querySelector(".border-b-2")).not.toBeInTheDocument();
   });
+
+  it("renders sharp corners and the floating shadow, not the Button-shared look", () => {
+    render(<Panel data-testid="panel">body</Panel>);
+
+    const panel = screen.getByTestId("panel");
+    expect(panel.className).toContain("rounded-none");
+    expect(panel.className).toContain("shadow-float");
+    expect(panel.className).not.toContain("rounded-sm");
+    expect(panel.className).not.toContain("shadow-hard");
+  });
 });

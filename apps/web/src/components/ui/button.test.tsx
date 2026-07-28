@@ -34,6 +34,15 @@ describe("Button", () => {
     expect(button.className).toContain("px-4");
   });
 
+  it("keeps its own rounded-sm/shadow-hard look, distinct from Card/Panel's shadow-float", () => {
+    render(<Button>Default</Button>);
+
+    const button = screen.getByRole("button", { name: "Default" });
+    expect(button.className).toContain("rounded-sm");
+    expect(button.className).toContain("shadow-hard");
+    expect(button.className).not.toContain("shadow-float");
+  });
+
   it("fires onClick exactly once per click", () => {
     const onClick = vi.fn();
 
