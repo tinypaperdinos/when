@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "../trpc";
+import { LoadingState } from "../components/ui/loading-state";
+import { EmptyState } from "../components/ui/empty-state";
 import { TaskCreateForm } from "./task-create-form";
 import { TaskListItem } from "./task-list-item";
 
@@ -15,9 +17,11 @@ export function TasksPage() {
   return (
     <>
       <TaskCreateForm tagSuggestions={tagSuggestions} />
-      {isLoading && <p>Loading tasks…</p>}
+      {isLoading && <LoadingState label="Loading tasks…" />}
       {isError && <p>Something went wrong loading tasks.</p>}
-      {!isLoading && !isError && (!data || data.length === 0) && <p>No tasks yet</p>}
+      {!isLoading && !isError && (!data || data.length === 0) && (
+        <EmptyState title="No tasks yet" />
+      )}
       {!isLoading && !isError && data && data.length > 0 && (
         <ul>
           {data.map((task) => (

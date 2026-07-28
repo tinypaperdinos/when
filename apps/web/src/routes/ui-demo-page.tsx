@@ -11,11 +11,13 @@ import { DateTimePicker, type DateTimePickerValue } from "../components/ui/date-
 import { DateRangePicker, type DateRangeValue } from "../components/ui/date-range-picker";
 import { Badge, type BadgeVariant } from "../components/ui/badge";
 import { TagInput } from "../components/ui/tag-input";
+import { Spinner, type SpinnerSize } from "../components/ui/spinner";
+import { LoadingState } from "../components/ui/loading-state";
+import { EmptyState } from "../components/ui/empty-state";
+import { Modal } from "../components/ui/modal";
 
-// Dev-only demo route (`/dev/ui`, registered only when `import.meta.env.DEV`) that
-// renders every component in `components/ui/` along with its variants, for visual
-// review while running the dev server. See `components/ui/README.md` for the
-// convention: every new component here must get a section added below.
+// Dev-only demo route (`/dev/ui`, registered only when `import.meta.env.DEV`).
+// See `components/ui/README.md`: every new component here needs a section below.
 
 const variants: ButtonVariant[] = ["primary", "secondary"];
 const sizes: ButtonSize[] = ["sm", "md"];
@@ -32,6 +34,8 @@ const badgeSampleText: Record<BadgeVariant, string> = {
 };
 
 const tagSuggestions = ["work", "urgent", "personal", "errand", "backend", "frontend"];
+
+const spinnerSizes: SpinnerSize[] = ["sm", "md"];
 
 function PlusIcon() {
   return (
@@ -65,9 +69,7 @@ export function UiDemoPage() {
   const [freeformTags, setFreeformTags] = useState<string[]>([]);
   const [disabledTags, setDisabledTags] = useState<string[]>(["errand", "frontend"]);
 
-  // Select is controlled-or-uncontrolled (unlike the composites above) — this entry
-  // demos the controlled mode specifically, since the other two Select examples below
-  // are uncontrolled (placeholder-only / defaultValue).
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [controlledFruit, setControlledFruit] = useState("");
 
   return (
@@ -266,6 +268,53 @@ export function UiDemoPage() {
           label="Disabled tags"
           disabled
         />
+      </section>
+
+      <section>
+        <h2>Spinner</h2>
+        {spinnerSizes.map((size) => (
+          <p key={size}>
+            <span>{`Spinner ${size}:`}</span> <Spinner size={size} />
+          </p>
+        ))}
+      </section>
+
+      <section>
+        <h2>LoadingState</h2>
+        <p>default label:</p>
+        <LoadingState />
+
+        <p>custom label:</p>
+        <LoadingState label="Loading tasks…" />
+      </section>
+
+      <section>
+        <h2>EmptyState</h2>
+        <p>title only:</p>
+        <EmptyState title="No tasks yet" />
+
+        <p>icon, description, and action:</p>
+        <EmptyState
+          icon={<PlusIcon />}
+          title="No tasks yet"
+          description="Create your first task to get started."
+          action={<Button size="sm">+ add a task</Button>}
+        />
+      </section>
+
+      <section>
+        <h2>Modal</h2>
+        <p>
+          <Button onClick={() => setIsModalOpen(true)}>Open modal</Button>
+        </p>
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Edit task"
+          description="Update the task's details below."
+        >
+          <p>Modal body content goes here.</p>
+        </Modal>
       </section>
     </main>
   );
