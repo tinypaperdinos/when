@@ -1,14 +1,22 @@
 import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import type { TaskCreateInput, TaskUpdateInput } from "./task-schema";
+import { TagService } from "./tag-service";
 
 export class TaskService {
-  constructor(private readonly db: PrismaClient) {}
+  // Second constructor param is new for this codebase — no existing service currently
+  // composes another service. Defaulted so routers keep calling `new TaskService(db)`
+  // unchanged, while tests can inject a fake TagService instead of mocking db.tag.
+  constructor(
+    private readonly db: PrismaClient,
+    private readonly tagService: TagService = new TagService(db),
+  ) {}
 
   list() {
     return this.db.entry.findMany({
       where: { kind: "task" },
       orderBy: { dueDate: "asc" },
+      include: { tags: true },
     });
   }
 
@@ -20,18 +28,30 @@ export class TaskService {
   }
 
   async create(input: TaskCreateInput) {
+    const tagConnections =
+      input.tags && input.tags.length > 0
+        ? await this.tagService.resolveConnections(input.tags)
+        : [];
+
     return this.db.entry.create({
       data: {
         kind: "task",
         title: input.title,
         dueDate: input.dueDate ? new Date(input.dueDate) : undefined,
         notes: input.notes ? input.notes : undefined,
+        tags: tagConnections.length > 0 ? { connect: tagConnections } : undefined,
       },
     });
   }
 
   async update(id: string, input: TaskUpdateInput) {
     await this.assertTaskExists(id);
+
+    const tags =
+      input.tags === undefined
+        ? undefined
+        : { set: await this.tagService.resolveConnections(input.tags) };
+
     return this.db.entry.update({
       where: { id },
       data: {
@@ -43,6 +63,7 @@ export class TaskService {
               ? null
               : new Date(input.dueDate),
         notes: input.notes === undefined ? undefined : input.notes || null,
+        tags,
       },
     });
   }

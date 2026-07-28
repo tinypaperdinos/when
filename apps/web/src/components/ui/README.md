@@ -22,11 +22,25 @@ tags, layout primitives, etc. Not feature/page components (those live under
     that need to stand out from `accent`).
   - **No Material-style elevation**: components are border-first (`border-2 border-ink`
     is the norm, not a soft `box-shadow`). Depth comes from a hard, non-blurred offset
-    shadow — the `shadow-hard` utility (a `--shadow-hard` theme token defined in
-    `index.css` as `3px 3px 0 0 var(--color-ink)`), not a blurred elevation shadow. Use
-    the `shadow-hard` class rather than re-typing the arbitrary-value shadow — it's
-    already reused by `button.tsx`/`card.tsx`/`panel.tsx` and this keeps the color tied
-    to `--color-ink` in one place.
+    shadow, not a blurred elevation shadow — but the exact offset and corner radius
+    depend on which of two families a component belongs to (see "Card/Panel vs.
+    Button" below). Use the `shadow-hard`/`shadow-float` classes rather than re-typing
+    the arbitrary-value shadow, so the color stays tied to `--color-ink` in one place.
+  - **Card/Panel vs. Button — two visual families, deliberately distinct** (issue #29):
+    a floating content container and a pressable control should not look identical.
+    - **`shadow-hard`** (a `--shadow-hard` theme token in `index.css`, `3px 3px 0 0
+      var(--color-ink)`), paired with `rounded-sm` — the Button/interactive-pressable
+      family. Used by `button.tsx` for controls whose primary interaction is being
+      clicked/pressed (see "Press feedback" below).
+    - **`shadow-float`** (a `--shadow-float` theme token in `index.css`, `6px 6px 0 0
+      var(--color-ink)` — double `shadow-hard`'s offset, same hard/non-blurred, same
+      `--color-ink` tie-in), paired with `rounded-none` — the Card/Panel/floating-
+      content-container family. Used by `card.tsx`/`panel.tsx` for surfaces that hold
+      or frame other content rather than getting pressed themselves.
+    - Rule of thumb for a future component: does it get pressed/clicked as its primary
+      interaction, or does it hold/frame other content? Pick `shadow-hard`+`rounded-sm`
+      for the former, `shadow-float`+`rounded-none` for the latter — the same way
+      `field-base`'s `shadow-input` is a third family, for form wells (see below).
   - **Press feedback**: on `active`, translate the element by the same offset as its
     shadow and drop the shadow instantly (`active:translate-x-[3px] active:translate-y-[3px]
     active:shadow-none`) — see `button.tsx`. Don't transition `box-shadow` itself; a
@@ -35,8 +49,10 @@ tags, layout primitives, etc. Not feature/page components (those live under
   - **Focus**: dashed outline (`focus-visible:outline-dashed focus-visible:outline-2
     focus-visible:outline-offset-2 focus-visible:outline-accent`), not Tailwind's default
     soft `ring`.
-  - **Corners**: slightly rounded (`rounded-sm`), not Material's heavier rounding and not
-    fully square.
+  - **Corners**: paired with whichever shadow family a component uses (see "Card/Panel
+    vs. Button" above) — `rounded-sm` (slightly rounded, not Material's heavier rounding
+    and not fully square) for the Button family, `rounded-none` (sharp/square) for the
+    Card/Panel family.
   - **Field wells**: form controls (`TextInput`, `Textarea`, `Select`) use a "sunken"
     inset shadow instead of `shadow-hard`'s "raised" offset shadow — the `shadow-input`
     utility (a `--shadow-input` theme token defined in `index.css` as
@@ -61,6 +77,21 @@ tags, layout primitives, etc. Not feature/page components (those live under
   `panel.tsx` keep size classes exclusive in their own variant maps — a future field-like
   component should reuse `.field-base` for the size-independent styling but still supply
   its own padding/text-size, not assume it's inherited.
+- **`DateTimePicker`'s date field is a custom calendar popup, not a native
+  `<input type="date">`.** As of the `select-datepicker-refactor` ticket (issue #30),
+  `date-time-picker.tsx` renders an internal `CalendarPopup` (`calendar-popup.tsx`) —
+  a button-triggered month-grid popup, not part of this directory's public demo surface
+  (same relationship `chevron-down-icon.tsx` has to `select.tsx`) — for the date field.
+  The time field intentionally still renders a native `<input type="time">`: native time
+  inputs are a much weaker instance of "ugly browser default" than native date inputs,
+  and a full custom time-of-day picker is separable follow-up work, not something this
+  ticket silently expanded into — see `tickets/select-datepicker-refactor/plan.md` §2.4
+  before "fixing" this to match. `minDate` (on `DateTimePicker`) and the range guardrail
+  it composes into (`DateRangePicker`'s `value.start.date || undefined`) are now
+  enforced in JS — day cells before `minDate` render `aria-disabled="true"` and are
+  unclickable/unreachable by keyboard — rather than via a native `min` attribute (§2.5
+  of the same plan); this is a strictly *stronger* guardrail than before, not a
+  regression.
 - **Demo route**: every component here must be added to the demo page
   (`src/routes/ui-demo-page.tsx`) so it stays visible for visual review at `/dev/ui`
   (dev server only). This is manual registration, not auto-discovery — when you add a
@@ -86,6 +117,20 @@ tags, layout primitives, etc. Not feature/page components (those live under
   rather than pure value composition (no live tag data source lives inside it — see
   `tickets/tag-input-badge/plan.md` §2.3), and its suggestion dropdown is a hand-rolled
   ARIA combobox listbox rather than composed native inputs (§2.5/§3.2 of the same plan).
+- **`Select` is a hand-rolled listbox, not a native `<select>` wrapper — but it's *not*
+  part of the composite family above.** As of the `select-datepicker-refactor` ticket
+  (issue #30), `select.tsx` renders a `<button>` trigger + a custom `role="listbox"`
+  popup instead of a real `<select>`/`<option>` DOM tree, reusing the ARIA-combobox
+  pattern `tag-input.tsx` already established. It still stays **controlled-or-uncontrolled**
+  (an internal `useState<string>` seeded once from `defaultValue ?? ""`, with a supplied
+  `value` prop taking precedence): its value is a single scalar string, not a multi-field
+  composite, so reconciling `props.value ?? internalState` is the same trivial pattern
+  every native form element already does internally — not the class of risk that pushed
+  the three components above into controlled-only. See
+  `tickets/select-datepicker-refactor/plan.md` §2.6 for the full reasoning. This rewrite
+  also resolves the mechanical half of `TODO(#26)` (the old `defaultValue`-fallback hack
+  had nothing left to work around once there's no real `<option>`/`<select>` DOM
+  relationship) — #26's broader cross-component question stays open.
 
 - **Portal + focus-trap components**: `Modal` (added for the `feedback-components`
   ticket) is a third shape, alongside "thin native wrapper" (`Button`/`TextInput`/etc.)

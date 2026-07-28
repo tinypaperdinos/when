@@ -52,6 +52,32 @@ Decided 2026-07-25. Don't deviate from this without the human explicitly changin
   deliberately deferred, tracked addition, not a rejected one; don't introduce it
   unprompted.
 
+## Code comments
+
+Credo: **make the code self-explanatory instead of adding bloated comments.** Good
+naming and small, obviously-scoped functions are the default way to communicate intent —
+reach for a comment only when that's not enough.
+
+- Default to no comment. Only add one when it captures a non-obvious *why* — a hidden
+  constraint, a rejected alternative and the reason it was rejected, a workaround for a
+  specific bug, or behavior that would genuinely surprise a reader. If deleting the
+  comment wouldn't leave a reader confused, delete it.
+- Never write a comment that only makes sense with context the reader of the *code*
+  doesn't have — a reviewer's name, a PR number, a review-thread back-and-forth, "per
+  the ticket," "as discussed," "fixed per feedback." That context belongs in the commit
+  message or the PR/review thread, not the source file — it rots the moment the
+  conversation that produced it is no longer at hand.
+- Don't narrate what the code does line-by-line; well-named identifiers already do that.
+  A comment earns its place by adding information the code itself can't carry.
+- No multi-paragraph explanations inline. If a decision needs that much justification,
+  it belongs in `plan.md`/`ticket.md`/the commit message, with at most a one-line pointer
+  left in the code if a future reader would otherwise be stuck.
+- This applies to comments you didn't write too: if a refactor brings you through code
+  with a comment that violates the above (bloated, narrating the obvious, or only
+  meaningful with PR/review/prompt context), eliminate or shorten it as part of the
+  change rather than leaving it. Don't go out of your way to hunt for these outside the
+  code you're already touching — this is opportunistic cleanup, not a standalone pass.
+
 ## Ticket state
 
 Each ticket lives in `tickets/<slug>/` — a plain top-level directory, deliberately *not*

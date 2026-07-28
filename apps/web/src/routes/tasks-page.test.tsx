@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "server";
@@ -32,6 +32,22 @@ function jsonResponse(body: unknown) {
   );
 }
 
+// TasksPage fires tasks.list and tags.list in the same render tick, and
+// httpBatchLink joins them into one batched request whose URL path is the
+// comma-joined procedure names (`.../trpc/tasks.list,tags.list?...`) — see
+// tickets/tags/plan.md §2.4. This helper parses that path and returns each
+// procedure's response in the same order the batch requested them, keyed by a
+// caller-supplied { "tasks.list": [...], "tags.list": [...] } map.
+function batchFetch(byPath: Record<string, unknown>) {
+  return vi.fn((input: RequestInfo | URL) => {
+    const url = typeof input === "string" ? input : input.toString();
+    const pathSegment = decodeURIComponent(new URL(url, "http://localhost").pathname)
+      .split("/trpc/")[1];
+    const paths = pathSegment.split(",");
+    return jsonResponse(paths.map((path) => ({ result: { data: byPath[path] } })));
+  }) as unknown as typeof fetch;
+}
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -47,37 +63,71 @@ describe("TasksPage", () => {
   });
 
   it("renders the populated list once tasks resolve", async () => {
-    const fetchImpl = vi.fn(() =>
-      jsonResponse([
+    const fetchImpl = batchFetch({
+      "tasks.list": [
         {
-          result: {
-            data: [
-              {
-                id: "1",
-                kind: "task",
-                title: "Buy milk",
-                notes: null,
-                dueDate: null,
-                completed: false,
-                date: null,
-                createdAt: "2026-07-01T00:00:00.000Z",
-                updatedAt: "2026-07-01T00:00:00.000Z",
-              },
-            ],
-          },
+          id: "1",
+          kind: "task",
+          title: "Buy milk",
+          notes: null,
+          dueDate: null,
+          completed: false,
+          date: null,
+          tags: [],
+          createdAt: "2026-07-01T00:00:00.000Z",
+          updatedAt: "2026-07-01T00:00:00.000Z",
         },
-      ]),
-    ) as unknown as typeof fetch;
+      ],
+      "tags.list": [],
+    });
 
     renderTasksPage(fetchImpl);
 
     expect(await screen.findByText("Buy milk")).toBeInTheDocument();
   });
 
+  it("renders a tag badge for a task that has tags", async () => {
+    const fetchImpl = batchFetch({
+      "tasks.list": [
+        {
+          id: "1",
+          kind: "task",
+          title: "Buy milk",
+          notes: null,
+          dueDate: null,
+          completed: false,
+          date: null,
+          tags: [{ id: "t1", name: "urgent" }],
+          createdAt: "2026-07-01T00:00:00.000Z",
+          updatedAt: "2026-07-01T00:00:00.000Z",
+        },
+      ],
+      "tags.list": [{ id: "t1", name: "urgent" }],
+    });
+
+    renderTasksPage(fetchImpl);
+
+    expect(await screen.findByText("Buy milk")).toBeInTheDocument();
+    expect(screen.getByText("urgent")).toBeInTheDocument();
+  });
+
+  it("threads the fetched tag list into the create form as suggestions", async () => {
+    const fetchImpl = batchFetch({
+      "tasks.list": [],
+      "tags.list": [{ id: "t1", name: "urgent" }],
+    });
+
+    renderTasksPage(fetchImpl);
+
+    await screen.findByText(/no tasks yet/i);
+
+    fireEvent.change(screen.getByLabelText("Tags"), { target: { value: "urg" } });
+
+    expect(await screen.findByRole("option", { name: "urgent" })).toBeInTheDocument();
+  });
+
   it("renders the create form alongside the list", async () => {
-    const fetchImpl = vi.fn(() =>
-      jsonResponse([{ result: { data: [] } }]),
-    ) as unknown as typeof fetch;
+    const fetchImpl = batchFetch({ "tasks.list": [], "tags.list": [] });
 
     renderTasksPage(fetchImpl);
 
@@ -86,9 +136,7 @@ describe("TasksPage", () => {
   });
 
   it("renders an explicit empty state for an empty list", async () => {
-    const fetchImpl = vi.fn(() =>
-      jsonResponse([{ result: { data: [] } }]),
-    ) as unknown as typeof fetch;
+    const fetchImpl = batchFetch({ "tasks.list": [], "tags.list": [] });
 
     renderTasksPage(fetchImpl);
 

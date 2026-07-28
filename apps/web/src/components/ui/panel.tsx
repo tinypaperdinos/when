@@ -9,7 +9,7 @@ export interface PanelProps extends Omit<HTMLAttributes<HTMLDivElement>, "title"
   padding?: PanelPadding;
 }
 
-const baseClasses = "rounded-sm border-2 border-ink bg-paper shadow-hard";
+const baseClasses = "rounded-none border-2 border-ink bg-paper shadow-float";
 
 const paddingClasses: Record<PanelPadding, string> = {
   md: "p-4",

@@ -6,15 +6,26 @@ import { Checkbox } from "../components/ui/checkbox";
 import { TextInput } from "../components/ui/text-input";
 import { Textarea } from "../components/ui/textarea";
 import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { TagInput } from "../components/ui/tag-input";
 import { cn } from "../lib/cn";
 
-export function TaskListItem({ task }: { task: Task }) {
+export function TaskListItem({
+  task,
+  tagSuggestions = [],
+}: {
+  task: Task;
+  tagSuggestions?: string[];
+}) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [editNotes, setEditNotes] = useState(task.notes ?? "");
+  const [editTags, setEditTags] = useState<string[]>(
+    task.tags?.map((tag) => tag.name) ?? [],
+  );
 
   function invalidateList() {
     queryClient.invalidateQueries({ queryKey: trpc.tasks.list.queryKey() });
@@ -44,6 +55,7 @@ export function TaskListItem({ task }: { task: Task }) {
   function handleEditClick() {
     setEditTitle(task.title);
     setEditNotes(task.notes ?? "");
+    setEditTags(task.tags?.map((tag) => tag.name) ?? []);
     setIsEditing(true);
   }
 
@@ -52,6 +64,7 @@ export function TaskListItem({ task }: { task: Task }) {
       id: task.id,
       title: editTitle.trim(),
       notes: editNotes.trim() || null,
+      tags: editTags,
     });
   }
 
@@ -86,6 +99,12 @@ export function TaskListItem({ task }: { task: Task }) {
           value={editNotes}
           onChange={(event) => setEditNotes(event.target.value)}
         />
+        <TagInput
+          value={editTags}
+          onChange={setEditTags}
+          suggestions={tagSuggestions}
+          label="Edit task tags"
+        />
         {updateMutation.isError && (
           <p>Couldn&apos;t save task: {updateMutation.error.message}</p>
         )}
@@ -114,6 +133,13 @@ export function TaskListItem({ task }: { task: Task }) {
       </div>
       {task.dueDate && <p>Due {new Date(task.dueDate).toLocaleDateString()}</p>}
       {task.notes && <p className="whitespace-pre-wrap">{task.notes}</p>}
+      {(task.tags ?? []).length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {(task.tags ?? []).map((tag) => (
+            <Badge key={tag.id}>{tag.name}</Badge>
+          ))}
+        </div>
+      )}
       {toggleCompleteMutation.isError && (
         <p>Couldn&apos;t update task: {toggleCompleteMutation.error.message}</p>
       )}

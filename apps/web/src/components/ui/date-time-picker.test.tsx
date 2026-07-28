@@ -22,10 +22,10 @@ function ControlledDateTimePicker(
 }
 
 describe("DateTimePicker", () => {
-  it("renders the date input empty and the unchecked 'Add time' checkbox, with no time input in the DOM by default", () => {
+  it("renders the date field's trigger showing a muted placeholder and the unchecked 'Add time' checkbox, with no time input in the DOM by default", () => {
     render(<DateTimePicker value={{ date: "" }} onChange={() => {}} />);
 
-    expect((screen.getByLabelText("Date") as HTMLInputElement).value).toBe("");
+    expect(screen.getByRole("button", { name: "Date" })).toHaveTextContent("Select a date");
     expect(screen.getByLabelText("Add time")).not.toBeChecked();
     expect(screen.queryByLabelText("Time")).not.toBeInTheDocument();
   });
@@ -63,24 +63,26 @@ describe("DateTimePicker", () => {
     expect((screen.getByLabelText("Time") as HTMLInputElement).value).toBe("14:30");
   });
 
-  it("changing the date input preserves the previous time (including the no-time case)", () => {
+  it("picking a new date preserves the previous time (including the no-time case)", () => {
     const onChange = vi.fn();
-    render(<DateTimePicker value={{ date: "" }} onChange={onChange} />);
+    render(<DateTimePicker value={{ date: "2026-07-26" }} onChange={onChange} />);
 
-    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-08-01" } });
+    fireEvent.click(screen.getByRole("button", { name: "Date" }));
+    fireEvent.click(screen.getByRole("gridcell", { name: "27" }));
 
-    expect(onChange).toHaveBeenCalledWith({ date: "2026-08-01" });
+    expect(onChange).toHaveBeenCalledWith({ date: "2026-07-27" });
   });
 
-  it("changing the date input preserves an already-set time", () => {
+  it("picking a new date preserves an already-set time", () => {
     const onChange = vi.fn();
     render(
       <DateTimePicker value={{ date: "2026-07-26", time: "09:00" }} onChange={onChange} />,
     );
 
-    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-08-01" } });
+    fireEvent.click(screen.getByRole("button", { name: "Date" }));
+    fireEvent.click(screen.getByRole("gridcell", { name: "27" }));
 
-    expect(onChange).toHaveBeenCalledWith({ date: "2026-08-01", time: "09:00" });
+    expect(onChange).toHaveBeenCalledWith({ date: "2026-07-27", time: "09:00" });
   });
 
   it("changing the time input preserves the previous date", () => {
@@ -126,7 +128,7 @@ describe("DateTimePicker", () => {
     expect(screen.queryByLabelText("Add time")).not.toBeInTheDocument();
   });
 
-  it("disables the date input, time input, and checkbox, and blocks changes to each when disabled", () => {
+  it("disables the date field's trigger, time input, and checkbox, and blocks changes to each when disabled", () => {
     // `onChange` is a no-op here (doesn't feed back into `value`), so a controlled
     // input/checkbox that ignores an attempted change re-renders with its original
     // value — same assertion style `TextInput`/`Select`'s own disabled tests use, since
@@ -141,29 +143,42 @@ describe("DateTimePicker", () => {
       />,
     );
 
-    const dateInput = screen.getByLabelText("Date") as HTMLInputElement;
+    const dateTrigger = screen.getByRole("button", { name: "Date" });
     const timeInput = screen.getByLabelText("Time") as HTMLInputElement;
     const toggle = screen.getByLabelText("Add time") as HTMLInputElement;
 
-    expect(dateInput).toBeDisabled();
+    expect(dateTrigger).toBeDisabled();
     expect(timeInput).toBeDisabled();
     expect(toggle).toBeDisabled();
 
-    fireEvent.change(dateInput, { target: { value: "2026-08-01" } });
+    fireEvent.click(dateTrigger);
+    expect(screen.queryByRole("grid")).not.toBeInTheDocument();
+
     fireEvent.change(timeInput, { target: { value: "10:00" } });
     fireEvent.click(toggle);
 
-    expect(dateInput.value).toBe("2026-07-26");
+    expect(dateTrigger).toHaveTextContent("Jul 26, 2026");
     expect(timeInput.value).toBe("09:00");
     expect(toggle.checked).toBe(true);
   });
 
-  it("renders minDate as the date input's native min attribute", () => {
+  it("minDate: day cells before it render aria-disabled and are unclickable (enforced in JS, not a native min attribute)", () => {
+    const onChange = vi.fn();
     render(
-      <DateTimePicker value={{ date: "" }} onChange={() => {}} minDate="2026-07-01" />,
+      <DateTimePicker
+        value={{ date: "2026-07-15" }}
+        onChange={onChange}
+        minDate="2026-07-10"
+      />,
     );
 
-    expect(screen.getByLabelText("Date")).toHaveAttribute("min", "2026-07-01");
+    fireEvent.click(screen.getByRole("button", { name: "Date" }));
+
+    const day5 = screen.getByRole("gridcell", { name: "5" });
+    expect(day5).toHaveAttribute("aria-disabled", "true");
+
+    fireEvent.click(day5);
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("merges a consumer-supplied className onto the wrapping div", () => {
@@ -181,10 +196,11 @@ describe("DateTimePicker", () => {
   });
 
   it("stays controlled end-to-end when driven by external state", () => {
-    render(<ControlledDateTimePicker initialValue={{ date: "" }} />);
+    render(<ControlledDateTimePicker initialValue={{ date: "2026-09-01" }} />);
 
-    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-09-10" } });
-    expect((screen.getByLabelText("Date") as HTMLInputElement).value).toBe("2026-09-10");
+    fireEvent.click(screen.getByRole("button", { name: "Date" }));
+    fireEvent.click(screen.getByRole("gridcell", { name: "10" }));
+    expect(screen.getByRole("button", { name: "Date" })).toHaveTextContent("Sep 10, 2026");
 
     fireEvent.click(screen.getByLabelText("Add time"));
     fireEvent.change(screen.getByLabelText("Time"), { target: { value: "12:00" } });
