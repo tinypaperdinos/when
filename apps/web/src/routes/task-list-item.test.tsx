@@ -16,13 +16,18 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     dueDate: null,
     completed: false,
     date: null,
+    tags: [],
     createdAt: "2026-07-01T00:00:00.000Z",
     updatedAt: "2026-07-01T00:00:00.000Z",
     ...overrides,
   } as unknown as Task;
 }
 
-function renderTaskListItem(task: Task, fetchImpl: typeof fetch) {
+function renderTaskListItem(
+  task: Task,
+  fetchImpl: typeof fetch,
+  tagSuggestions?: string[],
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -34,7 +39,7 @@ function renderTaskListItem(task: Task, fetchImpl: typeof fetch) {
     <QueryClientProvider client={queryClient}>
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
         <ul>
-          <TaskListItem task={task} />
+          <TaskListItem task={task} tagSuggestions={tagSuggestions} />
         </ul>
       </TRPCProvider>
     </QueryClientProvider>,
@@ -128,6 +133,32 @@ describe("TaskListItem", () => {
     expect(screen.queryByText("Get oat milk")).not.toBeInTheDocument();
   });
 
+  it("renders a Badge per tag in the non-editing view when tags is non-empty", () => {
+    renderTaskListItem(
+      makeTask({ tags: [{ id: "t1", name: "urgent" }, { id: "t2", name: "home" }] }),
+      vi.fn() as unknown as typeof fetch,
+    );
+
+    expect(screen.getByText("urgent")).toBeInTheDocument();
+    expect(screen.getByText("home")).toBeInTheDocument();
+  });
+
+  it("renders no tag section in the non-editing view when tags is []", () => {
+    renderTaskListItem(makeTask({ tags: [] }), vi.fn() as unknown as typeof fetch);
+
+    expect(screen.queryByText("urgent")).not.toBeInTheDocument();
+  });
+
+  it("defaults to no tag badges when tags is undefined on a partial fixture", () => {
+    const task = makeTask();
+    // @ts-expect-error deliberately simulating a partial/legacy-shaped fixture
+    delete task.tags;
+
+    expect(() =>
+      renderTaskListItem(task, vi.fn() as unknown as typeof fetch),
+    ).not.toThrow();
+  });
+
   it("clicking Edit shows a title field pre-filled with the current title", () => {
     renderTaskListItem(makeTask({ title: "Buy milk" }), vi.fn() as unknown as typeof fetch);
 
@@ -161,6 +192,26 @@ describe("TaskListItem", () => {
     ).toBe("");
   });
 
+  it("clicking Edit pre-fills the TagInput with the task's current tags as removable chips", () => {
+    renderTaskListItem(
+      makeTask({ tags: [{ id: "t1", name: "urgent" }, { id: "t2", name: "home" }] }),
+      vi.fn() as unknown as typeof fetch,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(screen.getByRole("button", { name: "Remove urgent" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove home" })).toBeInTheDocument();
+  });
+
+  it("clicking Edit on a task with no tags shows an empty TagInput", () => {
+    renderTaskListItem(makeTask({ tags: [] }), vi.fn() as unknown as typeof fetch);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(screen.queryByLabelText(/^Remove /)).not.toBeInTheDocument();
+  });
+
   it("Save calls update with the trimmed edited title and exits edit mode", async () => {
     const fetchImpl = successFetch({ id: "1", title: "New title" });
     renderTaskListItem(makeTask({ title: "Buy milk" }), fetchImpl);
@@ -174,7 +225,7 @@ describe("TaskListItem", () => {
     await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({
-      0: { id: "1", title: "New title", notes: null },
+      0: { id: "1", title: "New title", notes: null, tags: [] },
     });
 
     await waitFor(() =>
@@ -195,7 +246,7 @@ describe("TaskListItem", () => {
     await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({
-      0: { id: "1", title: "Buy milk", notes: "Get oat milk" },
+      0: { id: "1", title: "Buy milk", notes: "Get oat milk", tags: [] },
     });
   });
 
@@ -212,8 +263,78 @@ describe("TaskListItem", () => {
     await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({
-      0: { id: "1", title: "Buy milk", notes: null },
+      0: { id: "1", title: "Buy milk", notes: null, tags: [] },
     });
+  });
+
+  it("Save includes the full updated tag array (existing + new) after adding a tag in edit mode", async () => {
+    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
+    renderTaskListItem(makeTask({ title: "Buy milk", tags: [{ id: "t1", name: "urgent" }] }), fetchImpl);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Edit task tags"), { target: { value: "home" } });
+    fireEvent.keyDown(screen.getByLabelText("Edit task tags"), { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
+    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body as string)).toEqual({
+      0: { id: "1", title: "Buy milk", notes: null, tags: ["urgent", "home"] },
+    });
+  });
+
+  it("Save includes only the remaining tags after removing one tag in edit mode", async () => {
+    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
+    renderTaskListItem(
+      makeTask({
+        title: "Buy milk",
+        tags: [{ id: "t1", name: "urgent" }, { id: "t2", name: "home" }],
+      }),
+      fetchImpl,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove urgent" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
+    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body as string)).toEqual({
+      0: { id: "1", title: "Buy milk", notes: null, tags: ["home"] },
+    });
+  });
+
+  it("sends tags: [] explicitly after removing the only tag in edit mode", async () => {
+    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
+    renderTaskListItem(
+      makeTask({ title: "Buy milk", tags: [{ id: "t1", name: "urgent" }] }),
+      fetchImpl,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove urgent" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
+    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body as string)).toEqual({
+      0: { id: "1", title: "Buy milk", notes: null, tags: [] },
+    });
+  });
+
+  it("Cancel discards a tag change without calling update and leaves the read view's tags unaffected", () => {
+    const fetchImpl = vi.fn() as unknown as typeof fetch;
+    renderTaskListItem(makeTask({ title: "Buy milk", tags: [{ id: "t1", name: "urgent" }] }), fetchImpl);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Edit task tags"), { target: { value: "home" } });
+    fireEvent.keyDown(screen.getByLabelText("Edit task tags"), { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText("Edit task tags")).not.toBeInTheDocument();
+    expect(screen.getByText("urgent")).toBeInTheDocument();
+    expect(screen.queryByText("home")).not.toBeInTheDocument();
   });
 
   it("Cancel exits edit mode without calling update and discards the typed change", () => {

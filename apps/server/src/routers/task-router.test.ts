@@ -5,10 +5,13 @@ const findUnique = vi.fn();
 const create = vi.fn();
 const update = vi.fn();
 const del = vi.fn();
+const tagFindMany = vi.fn();
+const tagCreate = vi.fn();
 
 vi.mock("../db", () => ({
   db: {
     entry: { findMany, findUnique, create, update, delete: del },
+    tag: { findMany: tagFindMany, create: tagCreate },
   },
 }));
 
@@ -130,6 +133,47 @@ describe("tasksRouter", () => {
         caller.tasks.create({ title: "Buy milk", dueDate: "07/26/2026" }),
       ).rejects.toThrow();
       expect(create).not.toHaveBeenCalled();
+    });
+
+    it("rejects an empty-string entry inside tags", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.create({ title: "Buy milk", tags: [""] }),
+      ).rejects.toThrow();
+      expect(create).not.toHaveBeenCalled();
+      expect(tagCreate).not.toHaveBeenCalled();
+      expect(tagFindMany).not.toHaveBeenCalled();
+    });
+
+    it("rejects a non-array tags value", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.create({ title: "Buy milk", tags: "urgent" } as never),
+      ).rejects.toThrow();
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it("resolves and connects tags end-to-end for a valid tags array", async () => {
+      tagFindMany.mockResolvedValue([]);
+      tagCreate.mockResolvedValue({ id: "tag-1", name: "urgent" });
+      const row = { id: "1", title: "Buy milk", kind: "task" };
+      create.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await caller.tasks.create({ title: "Buy milk", tags: ["urgent"] });
+
+      expect(tagCreate).toHaveBeenCalledWith({ data: { name: "urgent" } });
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ tags: { connect: [{ id: "tag-1" }] } }),
+        }),
+      );
     });
   });
 
@@ -255,6 +299,47 @@ describe("tasksRouter", () => {
         expect.objectContaining({
           where: { id: "1" },
           data: expect.objectContaining({ dueDate: null }),
+        }),
+      );
+    });
+
+    it("rejects an empty-string entry inside tags", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.update({ id: "1", tags: [""] }),
+      ).rejects.toThrow();
+      expect(update).not.toHaveBeenCalled();
+      expect(tagCreate).not.toHaveBeenCalled();
+      expect(tagFindMany).not.toHaveBeenCalled();
+    });
+
+    it("rejects a non-array tags value", async () => {
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await expect(
+        caller.tasks.update({ id: "1", tags: "urgent" } as never),
+      ).rejects.toThrow();
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it("sends tags: { set: [] } end-to-end when tags is an empty array", async () => {
+      findUnique.mockResolvedValue({ id: "1", kind: "task" });
+      tagFindMany.mockResolvedValue([]);
+      const row = { id: "1", title: "Buy milk", kind: "task" };
+      update.mockResolvedValue(row);
+
+      const { appRouter } = await import("./app-router");
+      const caller = appRouter.createCaller({});
+
+      await caller.tasks.update({ id: "1", tags: [] });
+
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "1" },
+          data: expect.objectContaining({ tags: { set: [] } }),
         }),
       );
     });

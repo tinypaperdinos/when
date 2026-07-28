@@ -5,15 +5,21 @@ import { TextInput } from "../components/ui/text-input";
 import { Textarea } from "../components/ui/textarea";
 import { Button } from "../components/ui/button";
 import { DateTimePicker, type DateTimePickerValue } from "../components/ui/date-time-picker";
+import { TagInput } from "../components/ui/tag-input";
 import { dueDatePayload } from "../lib/task-due-date";
 
-export function TaskCreateForm() {
+export function TaskCreateForm({
+  tagSuggestions = [],
+}: {
+  tagSuggestions?: string[];
+}) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
   const [title, setTitle] = useState("");
   const [dueDateValue, setDueDateValue] = useState<DateTimePickerValue>({ date: "" });
   const [notes, setNotes] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
 
   const createMutation = useMutation(
     trpc.tasks.create.mutationOptions({
@@ -22,6 +28,7 @@ export function TaskCreateForm() {
         setTitle("");
         setDueDateValue({ date: "" });
         setNotes("");
+        setTags([]);
       },
     }),
   );
@@ -36,6 +43,7 @@ export function TaskCreateForm() {
       title: trimmedTitle,
       dueDate: dueDatePayload(dueDateValue),
       notes: notes.trim() || undefined,
+      tags: tags.length > 0 ? tags : undefined,
     });
   }
 
@@ -59,6 +67,7 @@ export function TaskCreateForm() {
         value={notes}
         onChange={(event) => setNotes(event.target.value)}
       />
+      <TagInput value={tags} onChange={setTags} suggestions={tagSuggestions} />
       <Button type="submit" disabled={createMutation.isPending}>
         Add task
       </Button>

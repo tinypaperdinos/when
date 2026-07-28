@@ -6,17 +6,22 @@ import { TaskListItem } from "./task-list-item";
 export function TasksPage() {
   const trpc = useTRPC();
   const { data, isLoading, isError } = useQuery(trpc.tasks.list.queryOptions());
+  // isLoading/isError below stay keyed off tasks.list only — a slow/failed
+  // tag-suggestions fetch shouldn't block or error out the whole task list;
+  // TagInput degrades gracefully with an empty/stale suggestions array either way.
+  const { data: tagsData } = useQuery(trpc.tags.list.queryOptions());
+  const tagSuggestions = (tagsData ?? []).map((tag) => tag.name);
 
   return (
     <>
-      <TaskCreateForm />
+      <TaskCreateForm tagSuggestions={tagSuggestions} />
       {isLoading && <p>Loading tasks…</p>}
       {isError && <p>Something went wrong loading tasks.</p>}
       {!isLoading && !isError && (!data || data.length === 0) && <p>No tasks yet</p>}
       {!isLoading && !isError && data && data.length > 0 && (
         <ul>
           {data.map((task) => (
-            <TaskListItem key={task.id} task={task} />
+            <TaskListItem key={task.id} task={task} tagSuggestions={tagSuggestions} />
           ))}
         </ul>
       )}
