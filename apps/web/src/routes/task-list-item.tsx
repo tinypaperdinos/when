@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "../trpc";
 import type { Task } from "../trpc";
+import { useUpdateTaskMutation } from "../lib/task-event-mutations";
 import { Checkbox } from "../components/ui/checkbox";
 import { TextInput } from "../components/ui/text-input";
 import { Textarea } from "../components/ui/textarea";
@@ -26,14 +27,7 @@ export function TaskListItem({ task }: { task: Task }) {
     }),
   );
 
-  const updateMutation = useMutation(
-    trpc.tasks.update.mutationOptions({
-      onSuccess: () => {
-        invalidateList();
-        setIsEditing(false);
-      },
-    }),
-  );
+  const updateMutation = useUpdateTaskMutation(() => setIsEditing(false));
 
   const deleteMutation = useMutation(
     trpc.tasks.delete.mutationOptions({

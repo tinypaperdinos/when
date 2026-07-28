@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -8,10 +8,10 @@ import interactionPlugin from "@fullcalendar/interaction";
 import type { EventDropArg } from "@fullcalendar/core";
 import { useTRPC } from "../trpc";
 import { calendarEntries, buildRescheduleMutationArgs } from "../lib/calendar-events";
+import { useUpdateTaskMutation, useUpdateEventMutation } from "../lib/task-event-mutations";
 
 export function CalendarPage() {
   const trpc = useTRPC();
-  const queryClient = useQueryClient();
   const tasksQuery = useQuery(trpc.tasks.list.queryOptions());
   const eventsQuery = useQuery(trpc.events.list.queryOptions());
   const [dragError, setDragError] = useState<string | null>(null);
@@ -21,16 +21,8 @@ export function CalendarPage() {
     [tasksQuery.data, eventsQuery.data],
   );
 
-  const updateTask = useMutation(
-    trpc.tasks.update.mutationOptions({
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: trpc.tasks.list.queryKey() }),
-    }),
-  );
-  const updateEvent = useMutation(
-    trpc.events.update.mutationOptions({
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: trpc.events.list.queryKey() }),
-    }),
-  );
+  const updateTask = useUpdateTaskMutation();
+  const updateEvent = useUpdateEventMutation();
 
   function handleEventDrop(info: EventDropArg) {
     setDragError(null);
