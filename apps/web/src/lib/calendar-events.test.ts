@@ -132,22 +132,10 @@ describe("wireDateFromDrop", () => {
   });
 
   it("uses local Date getters, not toISOString(), to build an all-day drop's date string", () => {
-    // This repo's test runner and CI both default to UTC (confirmed:
-    // `Intl.DateTimeFormat().resolvedOptions().timeZone` is "UTC" here), so no `Date`
-    // constructed from literal date/time components alone can make local getters and
-    // `toISOString()` disagree about the calendar day — a test built that way would pass
-    // whether or not the implementation used `toISOString()`, which is exactly what
-    // review-notes-tests.md round 1 finding 1 flagged. Instead, this test passes a
-    // Date-like object (only the methods `wireDateFromDrop` actually calls need to exist —
-    // `Date`'s own type is structural at the call site) whose local-getter values and
-    // whose `toISOString()` value deliberately disagree about the day: local getters say
-    // July 28, `toISOString()` says July 27. If `wireDateFromDrop` were reimplemented as
-    // `date.toISOString().slice(0, 10)`, this would assert `"2026-07-27"` and fail.
-    //
-    // Verified this actually catches the regression it claims to: temporarily changed
-    // `wireDateFromDrop`'s all-day branch to `return date.toISOString().slice(0, 10);`
-    // and reran this test — it failed (`"2026-07-27"` !== `"2026-07-28"`). Restored the
-    // local-getter implementation afterward; full suite passes again.
+    // A real Date can't make this repo's UTC test/CI runtime disagree with itself on the
+    // calendar day, so this uses a Date-like object whose local getters and toISOString()
+    // deliberately disagree (local: July 28, toISOString: July 27) — it would fail if
+    // `wireDateFromDrop` were reimplemented via toISOString().
     const fakeDate = {
       getFullYear: () => 2026,
       getMonth: () => 6, // July, zero-indexed
@@ -193,7 +181,5 @@ describe("buildRescheduleMutationArgs", () => {
   });
 });
 
-// Note: item 10 in tickets/calendar-view/plan.md §4 (a task and an event sharing the same
-// literal id string across kinds) is documented as impossible by construction (one
-// `Entry` table, one cuid id space) rather than tested, since no code path could produce
-// it.
+// A task and an event sharing the same literal id (plan.md §4 item 10) is impossible by
+// construction (one `Entry` table, one cuid id space), so it's not tested here.

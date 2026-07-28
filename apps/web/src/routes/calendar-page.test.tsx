@@ -7,13 +7,9 @@ import type { EventDropArg } from "@fullcalendar/core";
 import { TRPCProvider } from "../trpc";
 import { CalendarPage } from "./calendar-page";
 
-// FullCalendar's drag-and-drop is driven by low-level pointer events on its own internal
-// DOM structure; reliably simulating a real drag gesture through it in jsdom isn't
-// practical (tickets/calendar-view/plan.md §3.4). This mock renders the `events` prop as
-// plain text nodes (enough to cover loading/error/populated/empty states) and captures
-// the `eventDrop` callback so drop-dispatch tests can invoke it directly with a hand-built
-// fake `EventDropArg`-shaped object, without needing FullCalendar's real pointer
-// machinery.
+// Simulating a real FullCalendar drag gesture in jsdom isn't practical (plan.md §3.4), so
+// this mock renders `events` as plain text and captures `eventDrop` so drop-dispatch tests
+// can invoke it directly with a hand-built fake `EventDropArg`.
 let capturedEventDrop: ((info: EventDropArg) => void) | undefined;
 let capturedEventClassNames:
   | ((arg: { event: { extendedProps: { completed?: boolean } } }) => string[])
