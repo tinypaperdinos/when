@@ -42,7 +42,7 @@ describe("TaskService", () => {
       expect(db.entry.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { kind: "task" },
-          orderBy: { dueDate: "asc" },
+          orderBy: { dueDate: { sort: "asc", nulls: "last" } },
         }),
       );
     });
