@@ -1,6 +1,7 @@
 import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import { RootRoute } from "./routes/root-route";
 import { TasksPage } from "./routes/tasks-page";
+import { CalendarPage } from "./routes/calendar-page";
 import { UiDemoPage } from "./routes/ui-demo-page";
 
 const rootRoute = createRootRoute({
@@ -11,6 +12,12 @@ const tasksRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: TasksPage,
+});
+
+const calendarRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/calendar",
+  component: CalendarPage,
 });
 
 // Dev-only demo route: only added to the route tree when running the dev server
@@ -26,7 +33,7 @@ const devRoutes = import.meta.env.DEV
     ]
   : [];
 
-const routeTree = rootRoute.addChildren([tasksRoute, ...devRoutes]);
+const routeTree = rootRoute.addChildren([tasksRoute, calendarRoute, ...devRoutes]);
 
 export const router = createRouter({ routeTree });
 
