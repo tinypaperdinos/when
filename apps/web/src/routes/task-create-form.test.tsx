@@ -41,6 +41,7 @@ function successFetch(row: unknown) {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 describe("TaskCreateForm", () => {
@@ -64,6 +65,11 @@ describe("TaskCreateForm", () => {
   });
 
   it("submits the trimmed title with a dueDate payload when a due date is set", async () => {
+    // The due date field starts empty, so its calendar's default view falls back to
+    // "today" — fixed here so the picked day-26 lands on a known, asserted-exact date.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 1));
+
     const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
 
     renderTaskCreateForm(fetchImpl);
@@ -71,11 +77,11 @@ describe("TaskCreateForm", () => {
     fireEvent.change(screen.getByLabelText("Task title"), {
       target: { value: "Buy milk" },
     });
-    fireEvent.change(screen.getByLabelText("Due date"), {
-      target: { value: "2026-07-26" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Due date" }));
+    fireEvent.click(screen.getByRole("gridcell", { name: "26" }));
     fireEvent.click(screen.getByRole("button", { name: "Add task" }));
 
+    vi.useRealTimers();
     await screen.findByRole("button", { name: "Add task" });
 
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
@@ -147,9 +153,8 @@ describe("TaskCreateForm", () => {
     fireEvent.change(screen.getByLabelText("Task title"), {
       target: { value: "Buy milk" },
     });
-    fireEvent.change(screen.getByLabelText("Due date"), {
-      target: { value: "2026-07-26" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Due date" }));
+    fireEvent.click(screen.getByRole("gridcell", { name: "26" }));
     fireEvent.change(screen.getByLabelText("Task notes"), {
       target: { value: "Get oat milk" },
     });
@@ -158,7 +163,7 @@ describe("TaskCreateForm", () => {
     await waitFor(() =>
       expect((screen.getByLabelText("Task title") as HTMLInputElement).value).toBe(""),
     );
-    expect((screen.getByLabelText("Due date") as HTMLInputElement).value).toBe("");
+    expect(screen.getByRole("button", { name: "Due date" })).toHaveTextContent("Select a date");
     expect((screen.getByLabelText("Task notes") as HTMLTextAreaElement).value).toBe("");
   });
 

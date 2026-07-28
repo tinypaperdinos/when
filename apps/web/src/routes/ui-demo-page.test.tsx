@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { UiDemoPage } from "./ui-demo-page";
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
 });
 
 describe("UiDemoPage", () => {
@@ -125,7 +126,7 @@ describe("UiDemoPage", () => {
     expect(trigger).toHaveTextContent("Banana");
   });
 
-  it("shows the DateTimePicker demo block and is genuinely interactive (toggle + change events update what's shown)", () => {
+  it("shows the DateTimePicker demo block and is genuinely interactive (toggle + calendar popup update what's shown)", () => {
     render(<UiDemoPage />);
 
     expect(
@@ -136,15 +137,16 @@ describe("UiDemoPage", () => {
     // timeOptional, starts with no time) and the second (timeOptional=false, both
     // fields always shown). Only the second has a "Time" input before any interaction,
     // since the first's time field is hidden until "Add time" is checked.
-    const dateInputs = screen.getAllByLabelText("Date") as HTMLInputElement[];
-    expect(dateInputs).toHaveLength(2);
+    const dateTriggers = screen.getAllByRole("button", { name: "Date" });
+    expect(dateTriggers).toHaveLength(2);
     expect(screen.getAllByLabelText("Time")).toHaveLength(1);
 
     fireEvent.click(screen.getByLabelText("Add time"));
     expect(screen.getAllByLabelText("Time")).toHaveLength(2);
 
-    fireEvent.change(dateInputs[0], { target: { value: "2026-08-01" } });
-    expect(dateInputs[0].value).toBe("2026-08-01");
+    fireEvent.click(dateTriggers[0]);
+    fireEvent.click(screen.getByRole("gridcell", { name: "1" }));
+    expect(dateTriggers[0]).not.toHaveTextContent("Select a date");
 
     const timeInputs = screen.getAllByLabelText("Time") as HTMLInputElement[];
     fireEvent.change(timeInputs[1], { target: { value: "09:30" } });
@@ -152,21 +154,37 @@ describe("UiDemoPage", () => {
   });
 
   it("shows the DateRangePicker demo block seeded with a start date and reflects changes via onChange", () => {
+    // The end date starts empty, so its calendar's default view falls back to "today" —
+    // fixed here so it reliably lands on the same July 2026 month as the seeded start
+    // date, letting this test assert the minDate guardrail without a month-nav detour.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 28));
+
     render(<UiDemoPage />);
 
     expect(
       screen.getByRole("heading", { name: "DateRangePicker", level: 2 }),
     ).toBeInTheDocument();
 
-    const startDate = screen.getByLabelText("Start date") as HTMLInputElement;
-    const endDate = screen.getByLabelText("End date") as HTMLInputElement;
+    const startTrigger = screen.getByRole("button", { name: "Start date" });
+    const endTrigger = screen.getByRole("button", { name: "End date" });
 
-    expect(startDate.value).toBe("2026-07-26");
-    expect(endDate).toHaveAttribute("min", "2026-07-26");
+    expect(startTrigger).toHaveTextContent("Jul 26, 2026");
 
-    fireEvent.change(startDate, { target: { value: "2026-08-01" } });
-    expect(startDate.value).toBe("2026-08-01");
-    expect(endDate).toHaveAttribute("min", "2026-08-01");
+    fireEvent.click(endTrigger);
+    expect(screen.getByRole("gridcell", { name: "25" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(screen.getByRole("gridcell", { name: "26" })).not.toHaveAttribute("aria-disabled");
+    fireEvent.keyDown(endTrigger, { key: "Escape" });
+
+    fireEvent.click(startTrigger);
+    fireEvent.click(screen.getByRole("gridcell", { name: "1" }));
+    expect(startTrigger).toHaveTextContent("Jul 1, 2026");
+
+    fireEvent.click(endTrigger);
+    expect(screen.getByRole("gridcell", { name: "1" })).not.toHaveAttribute("aria-disabled");
   });
 
   it("shows the Badge demo block with each variant's hashtag-styled sample text", () => {

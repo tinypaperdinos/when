@@ -1,9 +1,10 @@
 import { cn } from "../../lib/cn";
 import { TextInput } from "./text-input";
 import { Checkbox } from "./checkbox";
+import { CalendarPopup } from "./calendar-popup";
 
 export interface DateTimePickerValue {
-  date: string; // native input[type=date] value: "" | "YYYY-MM-DD"
+  date: string; // "" | "YYYY-MM-DD" — produced by CalendarPopup, native input[type=date]'s value shape
   time?: string; // native input[type=time] value: "HH:mm"; undefined = no time chosen
 }
 
@@ -16,7 +17,8 @@ export interface DateTimePickerProps {
   dateLabel?: string; // default "Date" — aria-label for the date input
   timeLabel?: string; // default "Time" — aria-label for the time input
   addTimeLabel?: string; // default "Add time" — label for the toggle checkbox
-  minDate?: string; // native `min` attribute on the date input
+  minDate?: string; // enforced in JS by CalendarPopup's grid (aria-disabled + unclickable
+  // day cells), not a native `min` attribute — see components/ui/README.md
   disabled?: boolean;
   className?: string; // applied to the wrapping <div>
 }
@@ -41,13 +43,12 @@ export function DateTimePicker({
 }: DateTimePickerProps) {
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <TextInput
-        type="date"
-        aria-label={dateLabel ?? "Date"}
+      <CalendarPopup
         value={value.date}
-        min={minDate}
+        onChange={(date) => onChange({ ...value, date })}
+        minDate={minDate}
         disabled={disabled}
-        onChange={(e) => onChange({ ...value, date: e.target.value })}
+        aria-label={dateLabel ?? "Date"}
       />
       {timeOptional !== false && (
         <Checkbox
