@@ -54,4 +54,14 @@ describe("Card", () => {
 
     expect(screen.getByTestId("card")).toHaveAttribute("id", "card-id");
   });
+
+  it("renders sharp corners and the floating shadow, not the Button-shared look", () => {
+    render(<Card data-testid="card">content</Card>);
+
+    const card = screen.getByTestId("card");
+    expect(card.className).toContain("rounded-none");
+    expect(card.className).toContain("shadow-float");
+    expect(card.className).not.toContain("rounded-sm");
+    expect(card.className).not.toContain("shadow-hard");
+  });
 });
