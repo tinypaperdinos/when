@@ -65,6 +65,11 @@ export function UiDemoPage() {
   const [freeformTags, setFreeformTags] = useState<string[]>([]);
   const [disabledTags, setDisabledTags] = useState<string[]>(["errand", "frontend"]);
 
+  // Select is controlled-or-uncontrolled (unlike the composites above) — this entry
+  // demos the controlled mode specifically, since the other two Select examples below
+  // are uncontrolled (placeholder-only / defaultValue).
+  const [controlledFruit, setControlledFruit] = useState("");
+
   return (
     <main>
       <h1>UI component library</h1>
@@ -197,6 +202,18 @@ export function UiDemoPage() {
           <Select aria-label="Choose a priority" defaultValue="high">
             <option value="low">Low</option>
             <option value="high">High</option>
+          </Select>
+        </p>
+        <p>
+          <span>controlled:</span>{" "}
+          <Select
+            aria-label="Choose a fruit"
+            placeholder="Choose a fruit…"
+            value={controlledFruit}
+            onChange={setControlledFruit}
+          >
+            <option value="apple">Apple</option>
+            <option value="banana">Banana</option>
           </Select>
         </p>
       </section>

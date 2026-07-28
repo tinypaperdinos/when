@@ -77,6 +77,21 @@ tags, layout primitives, etc. Not feature/page components (those live under
   `panel.tsx` keep size classes exclusive in their own variant maps — a future field-like
   component should reuse `.field-base` for the size-independent styling but still supply
   its own padding/text-size, not assume it's inherited.
+- **`DateTimePicker`'s date field is a custom calendar popup, not a native
+  `<input type="date">`.** As of the `select-datepicker-refactor` ticket (issue #30),
+  `date-time-picker.tsx` renders an internal `CalendarPopup` (`calendar-popup.tsx`) —
+  a button-triggered month-grid popup, not part of this directory's public demo surface
+  (same relationship `chevron-down-icon.tsx` has to `select.tsx`) — for the date field.
+  The time field intentionally still renders a native `<input type="time">`: native time
+  inputs are a much weaker instance of "ugly browser default" than native date inputs,
+  and a full custom time-of-day picker is separable follow-up work, not something this
+  ticket silently expanded into — see `tickets/select-datepicker-refactor/plan.md` §2.4
+  before "fixing" this to match. `minDate` (on `DateTimePicker`) and the range guardrail
+  it composes into (`DateRangePicker`'s `value.start.date || undefined`) are now
+  enforced in JS — day cells before `minDate` render `aria-disabled="true"` and are
+  unclickable/unreachable by keyboard — rather than via a native `min` attribute (§2.5
+  of the same plan); this is a strictly *stronger* guardrail than before, not a
+  regression.
 - **Demo route**: every component here must be added to the demo page
   (`src/routes/ui-demo-page.tsx`) so it stays visible for visual review at `/dev/ui`
   (dev server only). This is manual registration, not auto-discovery — when you add a
@@ -102,6 +117,20 @@ tags, layout primitives, etc. Not feature/page components (those live under
   rather than pure value composition (no live tag data source lives inside it — see
   `tickets/tag-input-badge/plan.md` §2.3), and its suggestion dropdown is a hand-rolled
   ARIA combobox listbox rather than composed native inputs (§2.5/§3.2 of the same plan).
+- **`Select` is a hand-rolled listbox, not a native `<select>` wrapper — but it's *not*
+  part of the composite family above.** As of the `select-datepicker-refactor` ticket
+  (issue #30), `select.tsx` renders a `<button>` trigger + a custom `role="listbox"`
+  popup instead of a real `<select>`/`<option>` DOM tree, reusing the ARIA-combobox
+  pattern `tag-input.tsx` already established. It still stays **controlled-or-uncontrolled**
+  (an internal `useState<string>` seeded once from `defaultValue ?? ""`, with a supplied
+  `value` prop taking precedence): its value is a single scalar string, not a multi-field
+  composite, so reconciling `props.value ?? internalState` is the same trivial pattern
+  every native form element already does internally — not the class of risk that pushed
+  the three components above into controlled-only. See
+  `tickets/select-datepicker-refactor/plan.md` §2.6 for the full reasoning. This rewrite
+  also resolves the mechanical half of `TODO(#26)` (the old `defaultValue`-fallback hack
+  had nothing left to work around once there's no real `<option>`/`<select>` DOM
+  relationship) — #26's broader cross-component question stays open.
 
 ## Extending an existing component vs. adding a new one
 

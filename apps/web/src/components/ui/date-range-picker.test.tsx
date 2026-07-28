@@ -74,7 +74,7 @@ describe("DateRangePicker", () => {
     expect(screen.getByLabelText("End time")).toBeInTheDocument();
   });
 
-  it("changing the start date updates value.start and leaves value.end unchanged", () => {
+  it("picking a new start date updates value.start and leaves value.end unchanged", () => {
     const onChange = vi.fn();
     const value: DateRangeValue = {
       start: { date: "2026-07-01" },
@@ -82,9 +82,8 @@ describe("DateRangePicker", () => {
     };
     render(<DateRangePicker value={value} onChange={onChange} />);
 
-    fireEvent.change(screen.getByLabelText("Start date"), {
-      target: { value: "2026-07-02" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Start date" }));
+    fireEvent.click(screen.getByRole("gridcell", { name: "2" }));
 
     expect(onChange).toHaveBeenCalledWith({
       start: { date: "2026-07-02" },
@@ -92,7 +91,7 @@ describe("DateRangePicker", () => {
     });
   });
 
-  it("changing the end date updates value.end and leaves value.start unchanged", () => {
+  it("picking a new end date updates value.end and leaves value.start unchanged", () => {
     const onChange = vi.fn();
     const value: DateRangeValue = {
       start: { date: "2026-07-01" },
@@ -100,9 +99,8 @@ describe("DateRangePicker", () => {
     };
     render(<DateRangePicker value={value} onChange={onChange} />);
 
-    fireEvent.change(screen.getByLabelText("End date"), {
-      target: { value: "2026-07-06" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "End date" }));
+    fireEvent.click(screen.getByRole("gridcell", { name: "6" }));
 
     expect(onChange).toHaveBeenCalledWith({
       start: { date: "2026-07-01" },
@@ -110,39 +108,54 @@ describe("DateRangePicker", () => {
     });
   });
 
-  it("sets the end date input's min to the current start date when non-empty", () => {
+  it("disables end-date day cells before the current start date (enforced in JS via the end calendar's aria-disabled cells, not a native min attribute)", () => {
     const value: DateRangeValue = {
-      start: { date: "2026-07-01" },
-      end: { date: "" },
+      start: { date: "2026-07-15" },
+      end: { date: "2026-07-20" },
     };
     render(<DateRangePicker value={value} onChange={() => {}} />);
 
-    expect(screen.getByLabelText("End date")).toHaveAttribute("min", "2026-07-01");
+    fireEvent.click(screen.getByRole("button", { name: "End date" }));
+
+    expect(screen.getByRole("gridcell", { name: "10" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(screen.getByRole("gridcell", { name: "20" })).not.toHaveAttribute("aria-disabled");
   });
 
-  it("leaves the end date input's min absent (not min='') when the start date is empty", () => {
+  it("leaves the end date's calendar entirely unrestricted when the start date is empty", () => {
     render(<DateRangePicker value={emptyRange} onChange={() => {}} />);
 
-    expect(screen.getByLabelText("End date")).not.toHaveAttribute("min");
+    fireEvent.click(screen.getByRole("button", { name: "End date" }));
+
+    for (const cell of screen.getAllByRole("gridcell")) {
+      expect(cell).not.toHaveAttribute("aria-disabled");
+    }
   });
 
-  it("updates the end date's min when the start date changes on re-render", () => {
+  it("updates the end date's minDate guardrail when the start date changes on re-render", () => {
     const value: DateRangeValue = {
       start: { date: "2026-07-01" },
-      end: { date: "" },
+      end: { date: "2026-07-20" },
     };
     const { rerender } = render(<DateRangePicker value={value} onChange={() => {}} />);
 
-    expect(screen.getByLabelText("End date")).toHaveAttribute("min", "2026-07-01");
+    fireEvent.click(screen.getByRole("button", { name: "End date" }));
+    expect(screen.getByRole("gridcell", { name: "1" })).not.toHaveAttribute("aria-disabled");
 
     rerender(
       <DateRangePicker
-        value={{ start: { date: "2026-07-15" }, end: { date: "" } }}
+        value={{ start: { date: "2026-07-15" }, end: { date: "2026-07-20" } }}
         onChange={() => {}}
       />,
     );
 
-    expect(screen.getByLabelText("End date")).toHaveAttribute("min", "2026-07-15");
+    expect(screen.getByRole("gridcell", { name: "1" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(screen.getByRole("gridcell", { name: "15" })).not.toHaveAttribute("aria-disabled");
   });
 
   it("propagates startLabel/endLabel overrides into legends and all three composed labels per side", () => {
@@ -205,12 +218,15 @@ describe("DateRangePicker", () => {
   it("stays controlled end-to-end when driven by external state", () => {
     render(<ControlledDateRangePicker initialValue={emptyRange} />);
 
-    fireEvent.change(screen.getByLabelText("Start date"), {
-      target: { value: "2026-07-01" },
-    });
-    expect((screen.getByLabelText("Start date") as HTMLInputElement).value).toBe(
-      "2026-07-01",
+    fireEvent.click(screen.getByRole("button", { name: "Start date" }));
+    fireEvent.click(screen.getByRole("gridcell", { name: "10" }));
+    expect(screen.getByRole("button", { name: "Start date" })).toHaveTextContent(/^\w+ 10, \d{4}$/);
+
+    fireEvent.click(screen.getByRole("button", { name: "End date" }));
+    expect(screen.getByRole("gridcell", { name: "5" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
     );
-    expect(screen.getByLabelText("End date")).toHaveAttribute("min", "2026-07-01");
+    expect(screen.getByRole("gridcell", { name: "10" })).not.toHaveAttribute("aria-disabled");
   });
 });
