@@ -15,13 +15,18 @@ import { CalendarPage } from "./calendar-page";
 // fake `EventDropArg`-shaped object, without needing FullCalendar's real pointer
 // machinery.
 let capturedEventDrop: ((info: EventDropArg) => void) | undefined;
+let capturedEventClassNames:
+  | ((arg: { event: { extendedProps: { completed?: boolean } } }) => string[])
+  | undefined;
 
 vi.mock("@fullcalendar/react", () => ({
   default: (props: {
     events: { id: string; title: string }[];
     eventDrop: (info: EventDropArg) => void;
+    eventClassNames: (arg: { event: { extendedProps: { completed?: boolean } } }) => string[];
   }) => {
     capturedEventDrop = props.eventDrop;
+    capturedEventClassNames = props.eventClassNames;
     return (
       <div data-testid="fullcalendar-mock">
         {props.events.map((event) => (
@@ -107,6 +112,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   capturedEventDrop = undefined;
+  capturedEventClassNames = undefined;
 });
 
 describe("CalendarPage", () => {
@@ -156,6 +162,30 @@ describe("CalendarPage", () => {
     renderCalendarPage(fetchImpl);
 
     expect(await screen.findByText("Water plants")).toBeInTheDocument();
+  });
+
+  it("applies muted line-through styling to a completed task via eventClassNames", async () => {
+    const fetchImpl = batchedListFetch({ "tasks.list": [completedTask], "events.list": [] });
+
+    renderCalendarPage(fetchImpl);
+    await screen.findByText("Water plants");
+
+    expect(capturedEventClassNames).toBeDefined();
+    expect(
+      capturedEventClassNames?.({ event: { extendedProps: { completed: true } } }),
+    ).toEqual(["line-through"]);
+  });
+
+  it("does not apply line-through styling to an incomplete task via eventClassNames", async () => {
+    const fetchImpl = batchedListFetch({ "tasks.list": [task], "events.list": [] });
+
+    renderCalendarPage(fetchImpl);
+    await screen.findByText("Buy milk");
+
+    expect(capturedEventClassNames).toBeDefined();
+    expect(
+      capturedEventClassNames?.({ event: { extendedProps: { completed: false } } }),
+    ).toEqual([]);
   });
 
   it("dispatches to tasks.update with dueDate when a task is dropped", async () => {

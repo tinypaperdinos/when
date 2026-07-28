@@ -127,10 +127,37 @@ describe("calendarEntries", () => {
 
 describe("wireDateFromDrop", () => {
   it("builds a date-only string for an all-day drop from local getters", () => {
-    // Use a date whose local-vs-UTC date would actually differ in some timezones to
-    // exercise the "not toISOString()" guarantee, not just a timezone-insensitive case.
     const date = new Date(2026, 6, 28); // local July 28, 2026, midnight local time
     expect(wireDateFromDrop(date, true)).toBe("2026-07-28");
+  });
+
+  it("uses local Date getters, not toISOString(), to build an all-day drop's date string", () => {
+    // This repo's test runner and CI both default to UTC (confirmed:
+    // `Intl.DateTimeFormat().resolvedOptions().timeZone` is "UTC" here), so no `Date`
+    // constructed from literal date/time components alone can make local getters and
+    // `toISOString()` disagree about the calendar day — a test built that way would pass
+    // whether or not the implementation used `toISOString()`, which is exactly what
+    // review-notes-tests.md round 1 finding 1 flagged. Instead, this test passes a
+    // Date-like object (only the methods `wireDateFromDrop` actually calls need to exist —
+    // `Date`'s own type is structural at the call site) whose local-getter values and
+    // whose `toISOString()` value deliberately disagree about the day: local getters say
+    // July 28, `toISOString()` says July 27. If `wireDateFromDrop` were reimplemented as
+    // `date.toISOString().slice(0, 10)`, this would assert `"2026-07-27"` and fail.
+    //
+    // Verified this actually catches the regression it claims to: temporarily changed
+    // `wireDateFromDrop`'s all-day branch to `return date.toISOString().slice(0, 10);`
+    // and reran this test — it failed (`"2026-07-27"` !== `"2026-07-28"`). Restored the
+    // local-getter implementation afterward; full suite passes again.
+    const fakeDate = {
+      getFullYear: () => 2026,
+      getMonth: () => 6, // July, zero-indexed
+      getDate: () => 28,
+      getHours: () => 0,
+      getMinutes: () => 0,
+      toISOString: () => "2026-07-27T23:00:00.000Z",
+    } as unknown as Date;
+
+    expect(wireDateFromDrop(fakeDate, true)).toBe("2026-07-28");
   });
 
   it("builds a zero-padded date-time string for a timed drop", () => {
