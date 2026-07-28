@@ -97,13 +97,24 @@ export function TaskListItem({
               Cancel
             </Button>
           </div>
-          <DateTimePicker
-            value={editDueDateValue}
-            onChange={setEditDueDateValue}
-            dateLabel="Edit due date"
-            timeLabel="Edit due time"
-            addTimeLabel="Edit add time"
-          />
+          <div className="flex items-center gap-2">
+            <DateTimePicker
+              value={editDueDateValue}
+              onChange={setEditDueDateValue}
+              dateLabel="Edit due date"
+              timeLabel="Edit due time"
+              addTimeLabel="Edit add time"
+            />
+            {editDueDateValue.date && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setEditDueDateValue({ date: "" })}
+              >
+                Clear due date
+              </Button>
+            )}
+          </div>
           <Textarea
             aria-label="Edit task notes"
             value={editNotes}

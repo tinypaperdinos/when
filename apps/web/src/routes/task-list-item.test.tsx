@@ -220,10 +220,26 @@ describe("TaskListItem", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
-    expect(
-      (screen.getByLabelText("Edit due date") as HTMLInputElement).value,
-    ).toBe("2026-07-26");
+    expect(screen.getByRole("button", { name: "Edit due date" })).toHaveTextContent(
+      "Jul 26, 2026",
+    );
     expect(screen.queryByLabelText("Edit due time")).not.toBeInTheDocument();
+  });
+
+  it("Clear due date button resets the trigger to empty and hides itself, without saving", () => {
+    const fetchImpl = vi.fn() as unknown as typeof fetch;
+    renderTaskListItem(makeTask({ dueDate: "2026-07-26" }), fetchImpl);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByRole("button", { name: "Clear due date" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear due date" }));
+
+    expect(screen.getByRole("button", { name: "Edit due date" })).toHaveTextContent(
+      "Select a date",
+    );
+    expect(screen.queryByRole("button", { name: "Clear due date" })).not.toBeInTheDocument();
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it("clicking Edit pre-fills a date+time due date", () => {
@@ -234,9 +250,9 @@ describe("TaskListItem", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
-    expect(
-      (screen.getByLabelText("Edit due date") as HTMLInputElement).value,
-    ).toBe("2026-07-26");
+    expect(screen.getByRole("button", { name: "Edit due date" })).toHaveTextContent(
+      "Jul 26, 2026",
+    );
     expect(
       (screen.getByLabelText("Edit due time") as HTMLInputElement).value,
     ).toBe("14:30");
@@ -247,9 +263,10 @@ describe("TaskListItem", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
-    expect(
-      (screen.getByLabelText("Edit due date") as HTMLInputElement).value,
-    ).toBe("");
+    expect(screen.getByRole("button", { name: "Edit due date" })).toHaveTextContent(
+      "Select a date",
+    );
+    expect(screen.queryByRole("button", { name: "Clear due date" })).not.toBeInTheDocument();
   });
 
   it("does not throw when editing a partial fixture missing dueDate entirely", () => {
@@ -260,9 +277,9 @@ describe("TaskListItem", () => {
     renderTaskListItem(task, vi.fn() as unknown as typeof fetch);
 
     expect(() => fireEvent.click(screen.getByRole("button", { name: "Edit" }))).not.toThrow();
-    expect(
-      (screen.getByLabelText("Edit due date") as HTMLInputElement).value,
-    ).toBe("");
+    expect(screen.getByRole("button", { name: "Edit due date" })).toHaveTextContent(
+      "Select a date",
+    );
   });
 
   it("Save calls update with the trimmed edited title and exits edit mode", async () => {
@@ -376,19 +393,24 @@ describe("TaskListItem", () => {
   });
 
   it("Save sends the edited due date in the update payload", async () => {
+    // The due date field starts empty, so its calendar's default view falls back to
+    // "today" — fixed here so the picked day-26 lands on a known, asserted-exact date.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 1));
+
     const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
     renderTaskListItem(makeTask({ title: "Buy milk", dueDate: null }), fetchImpl);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    fireEvent.change(screen.getByLabelText("Edit due date"), {
-      target: { value: "2026-08-01" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Edit due date" }));
+    fireEvent.click(screen.getByRole("gridcell", { name: "26" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
+    vi.useRealTimers();
     await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({
-      0: { id: "1", title: "Buy milk", notes: null, tags: [], dueDate: "2026-08-01" },
+      0: { id: "1", title: "Buy milk", notes: null, tags: [], dueDate: "2026-07-26" },
     });
   });
 
@@ -397,9 +419,7 @@ describe("TaskListItem", () => {
     renderTaskListItem(makeTask({ title: "Buy milk", dueDate: "2026-07-26" }), fetchImpl);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    fireEvent.change(screen.getByLabelText("Edit due date"), {
-      target: { value: "" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Clear due date" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
@@ -414,9 +434,7 @@ describe("TaskListItem", () => {
     renderTaskListItem(makeTask({ title: "Buy milk", dueDate: "2026-07-26" }), fetchImpl);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    fireEvent.change(screen.getByLabelText("Edit due date"), {
-      target: { value: "2026-08-01" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Clear due date" }));
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(fetchImpl).not.toHaveBeenCalled();
@@ -535,19 +553,22 @@ describe("TaskListItem", () => {
   });
 
   it("renders an inline error when update fails, staying in edit mode with editDueDateValue preserved", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 1));
+
     const fetchImpl = errorFetch("Task 1 not found");
     renderTaskListItem(makeTask({ title: "Buy milk", dueDate: null }), fetchImpl);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    fireEvent.change(screen.getByLabelText("Edit due date"), {
-      target: { value: "2026-08-01" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Edit due date" }));
+    fireEvent.click(screen.getByRole("gridcell", { name: "26" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
+    vi.useRealTimers();
     expect(await screen.findByText(/Task 1 not found/)).toBeInTheDocument();
-    expect(
-      (screen.getByLabelText("Edit due date") as HTMLInputElement).value,
-    ).toBe("2026-08-01");
+    expect(screen.getByRole("button", { name: "Edit due date" })).toHaveTextContent(
+      "Jul 26, 2026",
+    );
   });
 
   it("renders an inline error when delete fails (confirmed), leaving the row present", async () => {
