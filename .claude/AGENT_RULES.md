@@ -72,6 +72,11 @@ reach for a comment only when that's not enough.
 - No multi-paragraph explanations inline. If a decision needs that much justification,
   it belongs in `plan.md`/`ticket.md`/the commit message, with at most a one-line pointer
   left in the code if a future reader would otherwise be stuck.
+- This applies to comments you didn't write too: if a refactor brings you through code
+  with a comment that violates the above (bloated, narrating the obvious, or only
+  meaningful with PR/review/prompt context), eliminate or shorten it as part of the
+  change rather than leaving it. Don't go out of your way to hunt for these outside the
+  code you're already touching — this is opportunistic cleanup, not a standalone pass.
 
 ## Ticket state
 
