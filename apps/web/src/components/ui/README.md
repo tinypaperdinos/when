@@ -93,3 +93,37 @@ If a later ticket needs a new variant of a component that already exists here (e
 `icon` variant of `Button`), extend the existing file in place — don't create a
 duplicate or rebuild it from scratch. `button.tsx`'s `icon` variant (added for the
 `form-primitives` ticket) is a concrete example of this in the git history.
+
+## Prop interface: full native pass-through vs. a curated list
+
+issue #26 asked whether components should keep inheriting their HTML counterpart's
+full prop surface. Audited (`tickets/form-prop-interface-check/plan.md`) — the
+answer differs by component shape, and both shapes are correct in this codebase
+today, not just one:
+
+- **Thin, single-native-element wrappers** (`TextInput`, `Textarea`, `Checkbox`,
+  `Button`, and — as of the `select-datepicker-refactor` ticket — no longer `Select`,
+  see below) should keep extending the native `*HTMLAttributes` interface, `Omit`-ting
+  only the specific prop(s) that actually collide with a variant/custom prop of the
+  same name (e.g. `TextInput` omits native `size: number` because it has its own
+  `size: "sm" | "md"`; `Checkbox` omits `type` because it's hardcoded; `Select`, pre-
+  rewrite, omitted `multiple`). Full pass-through is a *feature* here, not an
+  oversight — consumers get `aria-*`, `name`, `autoComplete`, `pattern`, `min`/`max`,
+  `rows`, etc. for free, and `checkbox.test.tsx`'s "forwards arbitrary native input
+  props" test exists specifically to keep that behavior from regressing.
+- **Composite molecules that compose multiple primitives** rather than wrapping one
+  native element (`DateTimePicker`, `DateRangePicker`, `TagInput`, and — as of
+  `select-datepicker-refactor` — the rewritten `Select`) should expose a small,
+  curated, explicit prop list instead. There's no single native element whose
+  attributes would even make sense to forward, and (per the existing
+  "Composite, controlled-only components" bullet above) reconciling a
+  partially-native, partially-derived internal state against a full native attribute
+  surface is exactly the class of bug `Select`'s pre-rewrite `TODO(#26)` was a small
+  instance of.
+- **This audit found no `Select`-style prop-*interface* footgun in `TextInput`,
+  `Textarea`, or `Checkbox`** — see the plan's §3 for the per-component reasoning.
+  (A separate, non-interface runtime-default question was noted for `Button`'s
+  `type` prop; it's a behavioral default, not a prop-interface restriction, so it's
+  intentionally not addressed by this audit — see the ticket plan §6.)
+
+No component's prop *interface* changed as a result of this audit.
