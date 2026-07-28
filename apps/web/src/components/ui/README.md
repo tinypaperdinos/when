@@ -86,6 +86,20 @@ tags, layout primitives, etc. Not feature/page components (those live under
   rather than pure value composition (no live tag data source lives inside it — see
   `tickets/tag-input-badge/plan.md` §2.3), and its suggestion dropdown is a hand-rolled
   ARIA combobox listbox rather than composed native inputs (§2.5/§3.2 of the same plan).
+- **`Select` is a hand-rolled listbox, not a native `<select>` wrapper — but it's *not*
+  part of the composite family above.** As of the `select-datepicker-refactor` ticket
+  (issue #30), `select.tsx` renders a `<button>` trigger + a custom `role="listbox"`
+  popup instead of a real `<select>`/`<option>` DOM tree, reusing the ARIA-combobox
+  pattern `tag-input.tsx` already established. It still stays **controlled-or-uncontrolled**
+  (an internal `useState<string>` seeded once from `defaultValue ?? ""`, with a supplied
+  `value` prop taking precedence): its value is a single scalar string, not a multi-field
+  composite, so reconciling `props.value ?? internalState` is the same trivial pattern
+  every native form element already does internally — not the class of risk that pushed
+  the three components above into controlled-only. See
+  `tickets/select-datepicker-refactor/plan.md` §2.6 for the full reasoning. This rewrite
+  also resolves the mechanical half of `TODO(#26)` (the old `defaultValue`-fallback hack
+  had nothing left to work around once there's no real `<option>`/`<select>` DOM
+  relationship) — #26's broader cross-component question stays open.
 
 ## Extending an existing component vs. adding a new one
 

@@ -103,14 +103,26 @@ describe("UiDemoPage", () => {
     expect(screen.getByLabelText("Disabled example")).toBeDisabled();
   });
 
-  it("shows the Select demo block with a placeholder example and a defaultValue example", () => {
+  it("shows the Select demo block with placeholder, defaultValue, and controlled examples", () => {
     render(<UiDemoPage />);
 
     expect(screen.getByRole("heading", { name: "Select", level: 2 })).toBeInTheDocument();
-    expect((screen.getByLabelText("Choose a tag") as HTMLSelectElement).value).toBe("");
-    expect((screen.getByLabelText("Choose a priority") as HTMLSelectElement).value).toBe(
-      "high",
+    expect(screen.getByRole("button", { name: "Choose a tag" })).toHaveTextContent(
+      "Choose a tag…",
     );
+    expect(screen.getByRole("button", { name: "Choose a priority" })).toHaveTextContent("High");
+  });
+
+  it("shows the controlled Select demo example and is genuinely interactive", () => {
+    render(<UiDemoPage />);
+
+    const trigger = screen.getByRole("button", { name: "Choose a fruit" });
+    expect(trigger).toHaveTextContent("Choose a fruit…");
+
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("option", { name: "Banana" }));
+
+    expect(trigger).toHaveTextContent("Banana");
   });
 
   it("shows the DateTimePicker demo block and is genuinely interactive (toggle + change events update what's shown)", () => {
