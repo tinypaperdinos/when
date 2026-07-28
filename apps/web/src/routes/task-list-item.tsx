@@ -8,7 +8,10 @@ import { Textarea } from "../components/ui/textarea";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { TagInput } from "../components/ui/tag-input";
+import { Card } from "../components/ui/card";
+import { DateTimePicker, type DateTimePickerValue } from "../components/ui/date-time-picker";
 import { cn } from "../lib/cn";
+import { dueDatePayloadForUpdate, dueDateValueFromWireDate } from "../lib/task-due-date";
 
 export function TaskListItem({
   task,
@@ -26,6 +29,9 @@ export function TaskListItem({
   const [editTags, setEditTags] = useState<string[]>(
     task.tags?.map((tag) => tag.name) ?? [],
   );
+  const [editDueDateValue, setEditDueDateValue] = useState<DateTimePickerValue>({
+    date: "",
+  });
 
   function invalidateList() {
     queryClient.invalidateQueries({ queryKey: trpc.tasks.list.queryKey() });
@@ -56,6 +62,7 @@ export function TaskListItem({
     setEditTitle(task.title);
     setEditNotes(task.notes ?? "");
     setEditTags(task.tags?.map((tag) => tag.name) ?? []);
+    setEditDueDateValue(dueDateValueFromWireDate(task.dueDate));
     setIsEditing(true);
   }
 
@@ -65,6 +72,7 @@ export function TaskListItem({
       title: editTitle.trim(),
       notes: editNotes.trim() || null,
       tags: editTags,
+      dueDate: dueDatePayloadForUpdate(editDueDateValue),
     });
   }
 
@@ -80,72 +88,83 @@ export function TaskListItem({
 
   if (isEditing) {
     return (
-      <li className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <TextInput
-            aria-label="Edit task title"
-            value={editTitle}
-            onChange={(event) => setEditTitle(event.target.value)}
+      <li>
+        <Card padding="sm" className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <TextInput
+              aria-label="Edit task title"
+              value={editTitle}
+              onChange={(event) => setEditTitle(event.target.value)}
+            />
+            <Button size="sm" onClick={handleSave} disabled={updateMutation.isPending}>
+              Save
+            </Button>
+            <Button variant="secondary" size="sm" onClick={handleCancel}>
+              Cancel
+            </Button>
+          </div>
+          <DateTimePicker
+            value={editDueDateValue}
+            onChange={setEditDueDateValue}
+            dateLabel="Edit due date"
+            timeLabel="Edit due time"
+            addTimeLabel="Edit add time"
           />
-          <Button size="sm" onClick={handleSave} disabled={updateMutation.isPending}>
-            Save
-          </Button>
-          <Button variant="secondary" size="sm" onClick={handleCancel}>
-            Cancel
-          </Button>
-        </div>
-        <Textarea
-          aria-label="Edit task notes"
-          value={editNotes}
-          onChange={(event) => setEditNotes(event.target.value)}
-        />
-        <TagInput
-          value={editTags}
-          onChange={setEditTags}
-          suggestions={tagSuggestions}
-          label="Edit task tags"
-        />
-        {updateMutation.isError && (
-          <p>Couldn&apos;t save task: {updateMutation.error.message}</p>
-        )}
+          <Textarea
+            aria-label="Edit task notes"
+            value={editNotes}
+            onChange={(event) => setEditNotes(event.target.value)}
+          />
+          <TagInput
+            value={editTags}
+            onChange={setEditTags}
+            suggestions={tagSuggestions}
+            label="Edit task tags"
+          />
+          {updateMutation.isError && (
+            <p>Couldn&apos;t save task: {updateMutation.error.message}</p>
+          )}
+        </Card>
       </li>
     );
   }
 
   return (
-    <li className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <Checkbox
-          label={
-            <span className={cn(task.completed && "line-through")}>{task.title}</span>
-          }
-          checked={task.completed ?? false}
-          onChange={(event) =>
-            toggleCompleteMutation.mutate({ id: task.id, completed: event.target.checked })
-          }
-        />
-        <Button variant="secondary" size="sm" onClick={handleEditClick}>
-          Edit
-        </Button>
-        <Button variant="secondary" size="sm" onClick={handleDelete}>
-          Delete
-        </Button>
-      </div>
-      {task.dueDate && <p>Due {new Date(task.dueDate).toLocaleDateString()}</p>}
-      {task.notes && <p className="whitespace-pre-wrap">{task.notes}</p>}
-      {(task.tags ?? []).length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {(task.tags ?? []).map((tag) => (
-            <Badge key={tag.id}>{tag.name}</Badge>
-          ))}
+    <li>
+      <Card padding="sm" className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            label={
+              <span className={cn(task.completed && "line-through")}>{task.title}</span>
+            }
+            checked={task.completed ?? false}
+            onChange={(event) =>
+              toggleCompleteMutation.mutate({ id: task.id, completed: event.target.checked })
+            }
+          />
+          <Button variant="secondary" size="sm" onClick={handleEditClick}>
+            Edit
+          </Button>
+          <Button variant="secondary" size="sm" onClick={handleDelete}>
+            Delete
+          </Button>
         </div>
-      )}
-      {toggleCompleteMutation.isError && (
-        <p>Couldn&apos;t update task: {toggleCompleteMutation.error.message}</p>
-      )}
-      {deleteMutation.isError && (
-        <p>Couldn&apos;t delete task: {deleteMutation.error.message}</p>
-      )}
+        {task.dueDate && <p>Due {new Date(task.dueDate).toLocaleDateString()}</p>}
+        {task.notes && <p className="whitespace-pre-wrap">{task.notes}</p>}
+        {(task.tags ?? []).length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {(task.tags ?? []).map((tag) => (
+              <Badge key={tag.id}>{tag.name}</Badge>
+            ))}
+          </div>
+        )}
+        {toggleCompleteMutation.isError && (
+          <p>Couldn&apos;t update task: {toggleCompleteMutation.error.message}</p>
+        )}
+        {deleteMutation.isError && (
+          <p>Couldn&apos;t delete task: {deleteMutation.error.message}</p>
+        )}
+      </Card>
     </li>
   );
 }

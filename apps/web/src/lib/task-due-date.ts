@@ -1,11 +1,32 @@
 import type { DateTimePickerValue } from "../components/ui/date-time-picker";
 
-// Only the create-direction conversion is needed by this ticket's UI (a
-// `DateTimePickerValue` -> the wire-string `dueDate` payload); the reverse
-// direction (wire string back to a `DateTimePickerValue`, to pre-fill an
-// editable field) isn't needed since due-date editing isn't wired to the UI
-// this round (see tickets/task-crud/plan.md §3.10).
 export function dueDatePayload(value: DateTimePickerValue): string | undefined {
   if (!value.date) return undefined;
   return value.time ? `${value.date}T${value.time}` : value.date;
+}
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+// Inverse of dueDatePayload, for pre-filling the edit form from a wire dueDate. Takes
+// `Date | string` since `Task["dueDate"]`'s inferred type is `Date` but the runtime
+// value crossing the tRPC boundary is a string (see trpc.ts) — `new Date(...)` accepts
+// either. Same "no part of this app handles timezones yet" caveat as dueDatePayload:
+// round-trips exactly in UTC (this repo's dev/CI timezone), not guaranteed elsewhere.
+export function dueDateValueFromWireDate(
+  wireDueDate: string | Date | null | undefined,
+): DateTimePickerValue {
+  if (!wireDueDate) return { date: "" };
+  const parsed = new Date(wireDueDate);
+  const date = `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
+  const hasTime = parsed.getHours() !== 0 || parsed.getMinutes() !== 0;
+  return hasTime ? { date, time: `${pad(parsed.getHours())}:${pad(parsed.getMinutes())}` } : { date };
+}
+
+// Update-direction payload: unlike dueDatePayload (create), an empty date here means
+// "clear the due date" (null), not "omit the field" (undefined) — the edit form always
+// resubmits its current due-date value, so there's no "leave unchanged" case to preserve.
+export function dueDatePayloadForUpdate(value: DateTimePickerValue): string | null {
+  return dueDatePayload(value) ?? null;
 }

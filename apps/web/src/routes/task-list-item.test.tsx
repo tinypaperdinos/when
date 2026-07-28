@@ -212,6 +212,59 @@ describe("TaskListItem", () => {
     expect(screen.queryByLabelText(/^Remove /)).not.toBeInTheDocument();
   });
 
+  it("clicking Edit pre-fills a date-only due date", () => {
+    renderTaskListItem(
+      makeTask({ dueDate: "2026-07-26" }),
+      vi.fn() as unknown as typeof fetch,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(
+      (screen.getByLabelText("Edit due date") as HTMLInputElement).value,
+    ).toBe("2026-07-26");
+    expect(screen.queryByLabelText("Edit due time")).not.toBeInTheDocument();
+  });
+
+  it("clicking Edit pre-fills a date+time due date", () => {
+    renderTaskListItem(
+      makeTask({ dueDate: "2026-07-26T14:30" }),
+      vi.fn() as unknown as typeof fetch,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(
+      (screen.getByLabelText("Edit due date") as HTMLInputElement).value,
+    ).toBe("2026-07-26");
+    expect(
+      (screen.getByLabelText("Edit due time") as HTMLInputElement).value,
+    ).toBe("14:30");
+  });
+
+  it("clicking Edit on a task with no due date shows an empty due date field", () => {
+    renderTaskListItem(makeTask({ dueDate: null }), vi.fn() as unknown as typeof fetch);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(
+      (screen.getByLabelText("Edit due date") as HTMLInputElement).value,
+    ).toBe("");
+  });
+
+  it("does not throw when editing a partial fixture missing dueDate entirely", () => {
+    const task = makeTask();
+    // @ts-expect-error deliberately simulating a partial/legacy-shaped fixture
+    delete task.dueDate;
+
+    renderTaskListItem(task, vi.fn() as unknown as typeof fetch);
+
+    expect(() => fireEvent.click(screen.getByRole("button", { name: "Edit" }))).not.toThrow();
+    expect(
+      (screen.getByLabelText("Edit due date") as HTMLInputElement).value,
+    ).toBe("");
+  });
+
   it("Save calls update with the trimmed edited title and exits edit mode", async () => {
     const fetchImpl = successFetch({ id: "1", title: "New title" });
     renderTaskListItem(makeTask({ title: "Buy milk" }), fetchImpl);
@@ -225,7 +278,7 @@ describe("TaskListItem", () => {
     await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({
-      0: { id: "1", title: "New title", notes: null, tags: [] },
+      0: { id: "1", title: "New title", notes: null, tags: [], dueDate: null },
     });
 
     await waitFor(() =>
@@ -246,7 +299,7 @@ describe("TaskListItem", () => {
     await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({
-      0: { id: "1", title: "Buy milk", notes: "Get oat milk", tags: [] },
+      0: { id: "1", title: "Buy milk", notes: "Get oat milk", tags: [], dueDate: null },
     });
   });
 
@@ -263,7 +316,7 @@ describe("TaskListItem", () => {
     await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({
-      0: { id: "1", title: "Buy milk", notes: null, tags: [] },
+      0: { id: "1", title: "Buy milk", notes: null, tags: [], dueDate: null },
     });
   });
 
@@ -279,7 +332,7 @@ describe("TaskListItem", () => {
     await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({
-      0: { id: "1", title: "Buy milk", notes: null, tags: ["urgent", "home"] },
+      0: { id: "1", title: "Buy milk", notes: null, tags: ["urgent", "home"], dueDate: null },
     });
   });
 
@@ -300,7 +353,7 @@ describe("TaskListItem", () => {
     await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({
-      0: { id: "1", title: "Buy milk", notes: null, tags: ["home"] },
+      0: { id: "1", title: "Buy milk", notes: null, tags: ["home"], dueDate: null },
     });
   });
 
@@ -318,8 +371,57 @@ describe("TaskListItem", () => {
     await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({
-      0: { id: "1", title: "Buy milk", notes: null, tags: [] },
+      0: { id: "1", title: "Buy milk", notes: null, tags: [], dueDate: null },
     });
+  });
+
+  it("Save sends the edited due date in the update payload", async () => {
+    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
+    renderTaskListItem(makeTask({ title: "Buy milk", dueDate: null }), fetchImpl);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Edit due date"), {
+      target: { value: "2026-08-01" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
+    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body as string)).toEqual({
+      0: { id: "1", title: "Buy milk", notes: null, tags: [], dueDate: "2026-08-01" },
+    });
+  });
+
+  it("Save sends dueDate: null after clearing the date field", async () => {
+    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
+    renderTaskListItem(makeTask({ title: "Buy milk", dueDate: "2026-07-26" }), fetchImpl);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Edit due date"), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
+    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body as string)).toEqual({
+      0: { id: "1", title: "Buy milk", notes: null, tags: [], dueDate: null },
+    });
+  });
+
+  it("Cancel discards a due-date edit without calling update", () => {
+    const fetchImpl = vi.fn() as unknown as typeof fetch;
+    renderTaskListItem(makeTask({ title: "Buy milk", dueDate: "2026-07-26" }), fetchImpl);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Edit due date"), {
+      target: { value: "2026-08-01" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText("Edit due date")).not.toBeInTheDocument();
+    expect(screen.getByText(/Due /)).toBeInTheDocument();
   });
 
   it("Cancel discards a tag change without calling update and leaves the read view's tags unaffected", () => {
@@ -430,6 +532,22 @@ describe("TaskListItem", () => {
     expect(
       (screen.getByLabelText("Edit task notes") as HTMLTextAreaElement).value,
     ).toBe("Edited notes");
+  });
+
+  it("renders an inline error when update fails, staying in edit mode with editDueDateValue preserved", async () => {
+    const fetchImpl = errorFetch("Task 1 not found");
+    renderTaskListItem(makeTask({ title: "Buy milk", dueDate: null }), fetchImpl);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Edit due date"), {
+      target: { value: "2026-08-01" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText(/Task 1 not found/)).toBeInTheDocument();
+    expect(
+      (screen.getByLabelText("Edit due date") as HTMLInputElement).value,
+    ).toBe("2026-08-01");
   });
 
   it("renders an inline error when delete fails (confirmed), leaving the row present", async () => {
