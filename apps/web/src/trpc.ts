@@ -19,3 +19,8 @@ export const trpcClient = createTRPCClient<AppRouter>({
 // transformer configured) — always `new Date(task.dueDate)` before calling any
 // `Date` method on it.
 export type Task = Awaited<ReturnType<typeof trpcClient.tasks.list.query>>[number];
+
+// Same derivation pattern as `Task` above, and the same runtime-string-despite-inferred-
+// `Date`-type rule applies to `EventEntry["date"]`. Named `EventEntry`, not `Event`, to
+// avoid shadowing the DOM's global `Event` type in any file that imports it unqualified.
+export type EventEntry = Awaited<ReturnType<typeof trpcClient.events.list.query>>[number];
