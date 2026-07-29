@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "../trpc";
+import { Section } from "../components/ui/section";
+import { Panel } from "../components/ui/panel";
 import { LoadingState } from "../components/ui/loading-state";
 import { EmptyState } from "../components/ui/empty-state";
 import { TaskCreateForm } from "./task-create-form";
@@ -15,20 +17,22 @@ export function TasksPage() {
   const tagSuggestions = (tagsData ?? []).map((tag) => tag.name);
 
   return (
-    <>
-      <TaskCreateForm tagSuggestions={tagSuggestions} />
+    <Section title="Tasks">
+      <Panel title="Add a task">
+        <TaskCreateForm tagSuggestions={tagSuggestions} />
+      </Panel>
       {isLoading && <LoadingState label="Loading tasks…" />}
       {isError && <p>Something went wrong loading tasks.</p>}
       {!isLoading && !isError && (!data || data.length === 0) && (
         <EmptyState title="No tasks yet" />
       )}
       {!isLoading && !isError && data && data.length > 0 && (
-        <ul>
+        <ul className="space-y-3">
           {data.map((task) => (
             <TaskListItem key={task.id} task={task} tagSuggestions={tagSuggestions} />
           ))}
         </ul>
       )}
-    </>
+    </Section>
   );
 }

@@ -126,6 +126,14 @@ describe("TasksPage", () => {
     expect(await screen.findByRole("option", { name: "urgent" })).toBeInTheDocument();
   });
 
+  it("renders the Tasks heading", () => {
+    const fetchImpl = batchFetch({ "tasks.list": [], "tags.list": [] });
+
+    renderTasksPage(fetchImpl);
+
+    expect(screen.getByRole("heading", { name: "Tasks" })).toBeInTheDocument();
+  });
+
   it("renders the create form alongside the list", async () => {
     const fetchImpl = batchFetch({ "tasks.list": [], "tags.list": [] });
 

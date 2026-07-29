@@ -15,7 +15,7 @@ export class TaskService {
   list() {
     return this.db.entry.findMany({
       where: { kind: "task" },
-      orderBy: { dueDate: "asc" },
+      orderBy: { dueDate: { sort: "asc", nulls: "last" } },
       include: { tags: true },
     });
   }
