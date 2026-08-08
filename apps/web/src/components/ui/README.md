@@ -23,11 +23,14 @@ tags, layout primitives, etc. Not feature/page components (those live under
   - **No Material-style elevation**: components are border-first (`border-2 border-ink`
     is the norm, not a soft `box-shadow`). Depth comes from a hard, non-blurred offset
     shadow, not a blurred elevation shadow — but the exact offset and corner radius
-    depend on which of two families a component belongs to (see "Card/Panel vs.
-    Button" below). Use the `shadow-hard`/`shadow-float` classes rather than re-typing
-    the arbitrary-value shadow, so the color stays tied to `--color-ink` in one place.
-  - **Card/Panel vs. Button — two visual families, deliberately distinct** (issue #29):
-    a floating content container and a pressable control should not look identical.
+    depend on which of three families a component belongs to (see "Card/Panel vs.
+    Button vs. floating overlay" below). Use the `shadow-hard`/`shadow-float` classes
+    rather than re-typing the arbitrary-value shadow, so the color stays tied to
+    `--color-ink` in one place.
+  - **Card/Panel vs. Button vs. floating overlay — three visual families, deliberately
+    distinct** (issue #29, extended for issue #20): a pressable control, a content
+    container embedded in the page flow, and a panel that pops up transiently above other
+    content should not look identical to each other.
     - **`shadow-hard`** (a `--shadow-hard` theme token in `index.css`, `3px 3px 0 0
       var(--color-ink)`), paired with `rounded-sm` — the Button/interactive-pressable
       family. Used by `button.tsx` for controls whose primary interaction is being
@@ -36,11 +39,25 @@ tags, layout primitives, etc. Not feature/page components (those live under
       var(--color-ink)` — double `shadow-hard`'s offset, same hard/non-blurred, same
       `--color-ink` tie-in), paired with `rounded-none` — the Card/Panel/floating-
       content-container family. Used by `card.tsx`/`panel.tsx` for surfaces that hold
-      or frame other content rather than getting pressed themselves.
-    - Rule of thumb for a future component: does it get pressed/clicked as its primary
-      interaction, or does it hold/frame other content? Pick `shadow-hard`+`rounded-sm`
-      for the former, `shadow-float`+`rounded-none` for the latter — the same way
-      `field-base`'s `shadow-input` is a third family, for form wells (see below).
+      or frame other content, embedded in the page flow, rather than getting pressed
+      themselves or popping up above other content.
+    - **Floating-overlay family**: `shadow-hard` + `rounded-sm` + `border-2 border-ink` —
+      the same shadow/radius values as the Button family above, but a semantically
+      distinct group (not pressable); don't misread the shared values as the two families
+      actually being one. Used by `Modal` (backdrop + panel), `Select`'s listbox popup,
+      `CalendarPopup`'s month grid, and `TagInput`'s suggestion dropdown — content that
+      pops up transiently above other content rather than sitting embedded in the page
+      flow. These four were each added by a separate ticket but independently converged
+      on the same treatment; see "Portal + focus-trap components" below for `Modal`'s
+      fuller styling/z-index notes, which also apply to this family's shadow/radius/border
+      choice.
+    - Rule of thumb for a future component, in three branches: does it get pressed/clicked
+      as its primary interaction? -> `shadow-hard`+`rounded-sm` (Button family). Does it
+      hold/frame other content embedded in the page flow? -> `shadow-float`+`rounded-none`
+      (Card/Panel family). Does it pop up transiently above other content (a dropdown,
+      popup, or overlay)? -> `shadow-hard`+`rounded-sm`+`border-2 border-ink`
+      (floating-overlay family) — the same way `field-base`'s `shadow-input` is a fourth,
+      unrelated family, for form wells (see below).
   - **Press feedback**: on `active`, translate the element by the same offset as its
     shadow and drop the shadow instantly (`active:translate-x-[3px] active:translate-y-[3px]
     active:shadow-none`) — see `button.tsx`. Don't transition `box-shadow` itself; a
@@ -50,9 +67,9 @@ tags, layout primitives, etc. Not feature/page components (those live under
     focus-visible:outline-offset-2 focus-visible:outline-accent`), not Tailwind's default
     soft `ring`.
   - **Corners**: paired with whichever shadow family a component uses (see "Card/Panel
-    vs. Button" above) — `rounded-sm` (slightly rounded, not Material's heavier rounding
-    and not fully square) for the Button family, `rounded-none` (sharp/square) for the
-    Card/Panel family.
+    vs. Button vs. floating overlay" above) — `rounded-sm` (slightly rounded, not
+    Material's heavier rounding and not fully square) for the Button and floating-overlay
+    families, `rounded-none` (sharp/square) for the Card/Panel family.
   - **Field wells**: form controls (`TextInput`, `Textarea`, `Select`) use a "sunken"
     inset shadow instead of `shadow-hard`'s "raised" offset shadow — the `shadow-input`
     utility (a `--shadow-input` theme token defined in `index.css` as
@@ -141,8 +158,11 @@ tags, layout primitives, etc. Not feature/page components (those live under
   npm dependency — same "hand-roll the ARIA widget behavior" precedent `TagInput`
   established. Controlled-only (`isOpen`/`onClose`), `title` required (unlike `Panel`,
   where it's optional — a dialog that interrupts the whole page needs an accessible name
-  essentially always). Notable mechanics, in case a future overlay component needs the
-  same patterns:
+  essentially always). Its backdrop/panel styling is the floating-overlay shadow/radius
+  family described under "Card/Panel vs. Button vs. floating overlay" above
+  (`shadow-hard`+`rounded-sm`+`border-2 border-ink`), shared with `Select`'s listbox,
+  `CalendarPopup`, and `TagInput`'s suggestion dropdown. Notable mechanics, in case a
+  future overlay component needs the same patterns:
   - The `Escape` listener is attached to `document`, not the panel node, since there's a
     real window right after open where focus hasn't moved into the panel yet and a
     panel-scoped (bubbling-dependent) listener would miss the keypress.

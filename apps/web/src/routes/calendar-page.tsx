@@ -9,6 +9,7 @@ import type { EventDropArg } from "@fullcalendar/core";
 import { useTRPC } from "../trpc";
 import { calendarEntries, buildRescheduleMutationArgs } from "../lib/calendar-events";
 import { useUpdateTaskMutation, useUpdateEventMutation } from "../lib/task-event-mutations";
+import { Section } from "../components/ui/section";
 
 export function CalendarPage() {
   const trpc = useTRPC();
@@ -55,7 +56,7 @@ export function CalendarPage() {
   const isError = tasksQuery.isError || eventsQuery.isError;
 
   return (
-    <>
+    <Section title="Calendar">
       {isLoading && <p>Loading calendar…</p>}
       {isError && <p>Something went wrong loading the calendar.</p>}
       {dragError && <p>Couldn&apos;t reschedule: {dragError}</p>}
@@ -77,6 +78,6 @@ export function CalendarPage() {
           }
         />
       )}
-    </>
+    </Section>
   );
 }

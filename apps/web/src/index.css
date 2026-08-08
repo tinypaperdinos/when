@@ -57,3 +57,22 @@
       disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-line/10;
   }
 }
+
+/*
+ * FullCalendar (CalendarPage) renders its own DOM tree, not components/ui/ markup, so it
+ * can't be themed with Tailwind utility classes directly. This maps FullCalendar's own
+ * documented --fc-* custom properties to the existing theme tokens — a bounded set that
+ * fixes the border/background/font mismatch, not a full re-skin of every FullCalendar
+ * element (see components/ui/README.md and tickets/calendar-view/plan.md §3.7).
+ */
+.fc {
+  --fc-border-color: var(--color-line);
+  --fc-page-bg-color: var(--color-paper);
+  --fc-neutral-bg-color: var(--color-paper);
+  --fc-today-bg-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+
+.fc .fc-toolbar-title,
+.fc .fc-button {
+  font-family: var(--font-mono);
+}
