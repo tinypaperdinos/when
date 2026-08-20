@@ -1,34 +1,25 @@
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "../trpc";
 import { TextInput } from "../components/ui/text-input";
-import { Textarea } from "../components/ui/textarea";
 import { Button } from "../components/ui/button";
-import { DateTimePicker, type DateTimePickerValue } from "../components/ui/date-time-picker";
-import { TagInput } from "../components/ui/tag-input";
-import { dueDatePayload } from "../lib/task-due-date";
+import { Badge } from "../components/ui/badge";
+import { parseQuickAdd } from "../lib/quick-add-parse";
+import { wireDateTimeStringFromDate } from "../lib/task-due-date";
 
-export function TaskCreateForm({
-  tagSuggestions = [],
-}: {
-  tagSuggestions?: string[];
-}) {
+export function TaskCreateForm() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const [title, setTitle] = useState("");
-  const [dueDateValue, setDueDateValue] = useState<DateTimePickerValue>({ date: "" });
-  const [notes, setNotes] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
+  const [rawInput, setRawInput] = useState("");
+
+  const parsed = useMemo(() => parseQuickAdd(rawInput), [rawInput]);
 
   const createMutation = useMutation(
     trpc.tasks.create.mutationOptions({
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: trpc.tasks.list.queryKey() });
-        setTitle("");
-        setDueDateValue({ date: "" });
-        setNotes("");
-        setTags([]);
+        setRawInput("");
       },
     }),
   );
@@ -36,38 +27,47 @@ export function TaskCreateForm({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) return;
+    if (parsed.title === "") return;
 
     createMutation.mutate({
-      title: trimmedTitle,
-      dueDate: dueDatePayload(dueDateValue),
-      notes: notes.trim() || undefined,
-      tags: tags.length > 0 ? tags : undefined,
+      title: parsed.title,
+      dueDate: parsed.dueDate
+        ? wireDateTimeStringFromDate(parsed.dueDate, parsed.dueDateHasTime)
+        : undefined,
+      tags: parsed.tags.length > 0 ? parsed.tags : undefined,
     });
   }
+
+  const hasPreview = Boolean(parsed.dueDate) || parsed.tags.length > 0;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2">
       <TextInput
         aria-label="Task title"
-        placeholder="Add a task…"
+        placeholder='Add a task… try "tomorrow 5pm #chores"'
         required
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
+        value={rawInput}
+        onChange={(event) => setRawInput(event.target.value)}
       />
-      <DateTimePicker
-        value={dueDateValue}
-        onChange={setDueDateValue}
-        dateLabel="Due date"
-      />
-      <Textarea
-        aria-label="Task notes"
-        placeholder="Notes…"
-        value={notes}
-        onChange={(event) => setNotes(event.target.value)}
-      />
-      <TagInput value={tags} onChange={setTags} suggestions={tagSuggestions} />
+      {hasPreview && (
+        <div role="status" aria-live="polite" className="flex flex-col gap-2">
+          {parsed.dueDate && (
+            <p>
+              Due{" "}
+              {parsed.dueDateHasTime
+                ? parsed.dueDate.toLocaleString()
+                : parsed.dueDate.toLocaleDateString()}
+            </p>
+          )}
+          {parsed.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {parsed.tags.map((tag) => (
+                <Badge key={tag}>{tag}</Badge>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <Button type="submit" disabled={createMutation.isPending}>
         Add task
       </Button>

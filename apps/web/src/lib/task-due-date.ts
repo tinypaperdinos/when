@@ -30,3 +30,13 @@ export function dueDateValueFromWireDate(
 export function dueDatePayloadForUpdate(value: DateTimePickerValue): string | null {
   return dueDatePayload(value) ?? null;
 }
+
+// Converts a JS Date + an explicit "was a time actually specified" flag into a wire
+// dueDate string. Unlike dueDateValueFromWireDate's midnight-means-date-only heuristic
+// (needed there because a wire string alone can't distinguish "no time" from
+// "midnight"), quick-add has a real certainty signal from chrono, so hasTime is
+// required rather than inferred.
+export function wireDateTimeStringFromDate(date: Date, hasTime: boolean): string {
+  const datePart = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  return hasTime ? `${datePart}T${pad(date.getHours())}:${pad(date.getMinutes())}` : datePart;
+}

@@ -3,6 +3,7 @@ import {
   dueDatePayload,
   dueDatePayloadForUpdate,
   dueDateValueFromWireDate,
+  wireDateTimeStringFromDate,
 } from "./task-due-date";
 
 describe("dueDatePayload", () => {
@@ -63,5 +64,17 @@ describe("dueDatePayloadForUpdate", () => {
     expect(dueDatePayloadForUpdate({ date: "2026-07-26", time: "14:30" })).toBe(
       "2026-07-26T14:30",
     );
+  });
+});
+
+describe("wireDateTimeStringFromDate", () => {
+  it("returns a date-only string when hasTime is false, ignoring the Date's own clock fields", () => {
+    const date = new Date(2026, 6, 26, 14, 30);
+    expect(wireDateTimeStringFromDate(date, false)).toBe("2026-07-26");
+  });
+
+  it("returns a date+time string with zero-padded hour and minute when hasTime is true", () => {
+    const date = new Date(2026, 6, 26, 9, 5);
+    expect(wireDateTimeStringFromDate(date, true)).toBe("2026-07-26T09:05");
   });
 });
