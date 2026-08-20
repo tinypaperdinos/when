@@ -29,6 +29,8 @@ export function RootRoute() {
       {import.meta.env.DEV && (
         <p className="text-sm text-ink/60">
           <Link to="/dev/ui">UI component library (dev only)</Link>
+          {" · "}
+          <Link to="/dev/design-explore">Design exploration (dev only)</Link>
         </p>
       )}
       <Outlet />
