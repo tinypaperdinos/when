@@ -23,6 +23,11 @@ Decided 2026-07-25. Don't deviate from this without the human explicitly changin
   logic (validation rules, recurrence calculation, overdue checks) lives in the service
   classes, not in the procedure definitions. Don't introduce NestJS or a second
   routing/DI layer — tRPC already owns routing.
+- **Router filenames are singular, exports/registration are plural**:
+  `apps/server/src/routers/<entity>-router.ts` (e.g. `task-router.ts`, `event-router.ts`,
+  `tag-router.ts`) exports/registers a plural name (`tasksRouter`, `tags:` on
+  `appRouter`). Don't pluralize the filename to match the export. Full reasoning:
+  `tickets/_audits/2026-08-20.md`.
 - **Database**: Prisma ORM, SQLite for now. Write queries so they don't rely on
   SQLite-specific behavior (avoid raw SQL where possible) since the migration path to
   Postgres is a one-line datasource change in `schema.prisma`, not a rewrite — don't
@@ -77,6 +82,26 @@ reach for a comment only when that's not enough.
   meaningful with PR/review/prompt context), eliminate or shorten it as part of the
   change rather than leaving it. Don't go out of your way to hunt for these outside the
   code you're already touching — this is opportunistic cleanup, not a standalone pass.
+
+## Testing conventions
+
+- **A test that calls a service method directly isn't coverage for validation/
+  transformation that actually lives in the router's Zod schema** (`.trim()`,
+  `.nullable()`, a format regex, etc.) — the service only ever receives already-valid
+  input. Test that behavior through the real router (`appRouter.createCaller({})`), not
+  just the service. Recurred as a round-1 blocking `reviewer-tests` finding, with the
+  identical root cause, across three separate tickets (title trimming, `notes: null`,
+  malformed/nullable date fields) — each cost a full extra fix round that writing the
+  router-level test up front would have avoided. Full reasoning:
+  `tickets/_audits/2026-08-20.md`.
+- **Before treating a new or changed conditional branch as covered, mutation-test it
+  yourself**: temporarily break it, confirm the specific test you're relying on actually
+  fails, then revert. This is what `reviewer-tests` already does every round; doing it
+  during implementation avoids a guaranteed round-2 fix loop. Watch especially for files
+  that had zero test coverage before the ticket touched them — there's no existing
+  suite to lean on, so a missing or non-discriminating test is easy to miss. This exact
+  gap shipped a real data-loss bug in one ticket and an untested fix in another. Full
+  reasoning: `tickets/_audits/2026-08-20.md`.
 
 ## Ticket state
 
@@ -134,6 +159,11 @@ at whichever of these happens first:
 - Never push directly to `main`. Never merge a PR — merging is the human's job.
 - Open the PR as a draft as soon as the branch has a first commit, so CI runs early. Mark
   it ready-for-review only after the fix loop closes out.
+- **Local `main` predictably lags behind `origin/main`** in this environment (already-
+  merged sibling PRs missing from it). Before computing a diff against `main` (branching,
+  reviewing, or scoping a re-review), fetch/update the local ref or diff against
+  `origin/main` directly — don't rediscover this workaround from scratch each time. Full
+  reasoning: `tickets/_audits/2026-08-20.md`.
 
 ## Iteration caps
 
@@ -202,3 +232,11 @@ One line per audit, pointing to the full write-up rather than inlining it:
   `Date` gap (Tech stack) and the `status.md` `done`-state clarification (Ticket state).
   Proposed and got human confirmation to tighten `reviewer-code.md` (already applied).
   Full findings and reasoning: `tickets/_audits/2026-07-26.md`.
+- **2026-08-20**: Second audit, 17 merged pipeline tickets (first real cross-ticket
+  pattern search). Added a new "Testing conventions" section (router-layer validation
+  needs a router-level test, not just a service-level one; self-mutation-test new
+  conditional branches before treating them as covered), the router filename convention
+  (Tech stack), and a git-ref-hygiene note about stale local `main` (Branch and PR
+  conventions). No drift found (iteration caps, `status.md` behavior, re-review scope,
+  and ticket-state-commit conventions all holding). No agent-file edits proposed this
+  round. Full findings and reasoning: `tickets/_audits/2026-08-20.md`.
