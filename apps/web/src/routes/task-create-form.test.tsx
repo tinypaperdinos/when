@@ -160,20 +160,29 @@ describe("TaskCreateForm", () => {
     });
   });
 
-  it("does not call the mutation when the input is empty or whitespace-only", () => {
-    const fetchImpl = vi.fn() as unknown as typeof fetch;
+  it.each(["", "   "])(
+    "does not call the mutation when the input is %j (empty or whitespace-only)",
+    async (value) => {
+      const fetchImpl = vi.fn() as unknown as typeof fetch;
 
-    renderTaskCreateForm(fetchImpl);
+      renderTaskCreateForm(fetchImpl);
 
-    fireEvent.change(screen.getByLabelText("Task title"), {
-      target: { value: "   " },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add task" }));
+      fireEvent.change(screen.getByLabelText("Task title"), {
+        target: { value },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Add task" }));
 
-    expect(fetchImpl).not.toHaveBeenCalled();
-  });
+      // Give the mutation's fetch call (dispatched via a setTimeout-based
+      // batch dispatcher in tRPC's httpBatchLink) a chance to fire before
+      // asserting it didn't — otherwise this passes even if the empty-title
+      // guard in handleSubmit is removed.
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
-  it("does not call the mutation when the input resolves to an empty title", () => {
+      expect(fetchImpl).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not call the mutation when the input resolves to an empty title", async () => {
     const fetchImpl = vi.fn() as unknown as typeof fetch;
 
     renderTaskCreateForm(fetchImpl);
@@ -183,10 +192,12 @@ describe("TaskCreateForm", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Add task" }));
 
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it("does not call the mutation when the input is only a tag", () => {
+  it("does not call the mutation when the input is only a tag", async () => {
     const fetchImpl = vi.fn() as unknown as typeof fetch;
 
     renderTaskCreateForm(fetchImpl);
@@ -195,6 +206,8 @@ describe("TaskCreateForm", () => {
       target: { value: "#chores" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add task" }));
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(fetchImpl).not.toHaveBeenCalled();
   });
