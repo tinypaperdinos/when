@@ -165,6 +165,31 @@ at whichever of these happens first:
   `origin/main` directly — don't rediscover this workaround from scratch each time. Full
   reasoning: `tickets/_audits/2026-08-20.md`.
 
+## PR comment conventions
+
+Decided 2026-08-20, at human request, for review-process transparency — the review/fix
+loop previously only surfaced in `tickets/<slug>/review-notes-*.md`, invisible on the PR
+itself until hand-off.
+
+- `reviewer-code`/`reviewer-tests` post each finding as an inline PR review comment
+  (anchored to the file/line, `commit_id` = current HEAD) *in addition to* writing
+  `review-notes-*.md` — the notes file stays the authoritative full record other agents
+  (`fixer`, later review rounds) read; the PR comments are a live projection of it for
+  human visibility, not a replacement. Each round also gets one short summary comment
+  with the verdict and a one-line-per-finding recap, so a human skimming the PR sees the
+  verdict without opening every thread.
+- If GitHub rejects an inline comment with a 422 "not part of the diff" (the finding's
+  line isn't in the PR's visible diff), don't retry against a different line — fold that
+  finding into the round-summary comment instead.
+- `fixer` replies on each addressed finding's thread with the fix commit SHA and what
+  changed, then resolves the thread via the GraphQL `resolveReviewThread` mutation. For a
+  finding it disagrees with or leaves unfixed, it replies explaining why and leaves the
+  thread open — an unresolved thread is a deliberate signal for the orchestrator/human,
+  not something to silently close.
+- Exact `gh`/GraphQL command shapes live in `reviewer-code.md`/`reviewer-tests.md`'s
+  "Posting findings to the PR" section and `fixer.md`'s "Closing the loop on the PR"
+  section — don't duplicate them here, keep this section to the policy.
+
 ## Iteration caps
 
 - Plan refinement: max 2 revision rounds. If `plan-refiner` still says `REVISE` after
