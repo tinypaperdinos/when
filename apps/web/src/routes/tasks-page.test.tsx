@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "server";
@@ -109,21 +109,6 @@ describe("TasksPage", () => {
 
     expect(await screen.findByText("Buy milk")).toBeInTheDocument();
     expect(screen.getByText("urgent")).toBeInTheDocument();
-  });
-
-  it("threads the fetched tag list into the create form as suggestions", async () => {
-    const fetchImpl = batchFetch({
-      "tasks.list": [],
-      "tags.list": [{ id: "t1", name: "urgent" }],
-    });
-
-    renderTasksPage(fetchImpl);
-
-    await screen.findByText(/no tasks yet/i);
-
-    fireEvent.change(screen.getByLabelText("Tags"), { target: { value: "urg" } });
-
-    expect(await screen.findByRole("option", { name: "urgent" })).toBeInTheDocument();
   });
 
   it("renders the Tasks heading", () => {

@@ -6,7 +6,7 @@ import type { AppRouter } from "server";
 import { TRPCProvider } from "../trpc";
 import { TaskCreateForm } from "./task-create-form";
 
-function renderTaskCreateForm(fetchImpl: typeof fetch, tagSuggestions?: string[]) {
+function renderTaskCreateForm(fetchImpl: typeof fetch) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -17,7 +17,7 @@ function renderTaskCreateForm(fetchImpl: typeof fetch, tagSuggestions?: string[]
   return render(
     <QueryClientProvider client={queryClient}>
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-        <TaskCreateForm tagSuggestions={tagSuggestions} />
+        <TaskCreateForm />
       </TRPCProvider>
     </QueryClientProvider>,
   );
@@ -33,9 +33,7 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 function successFetch(row: unknown) {
-  return vi.fn(() =>
-    jsonResponse([{ result: { data: row } }]),
-  ) as unknown as typeof fetch;
+  return vi.fn(() => jsonResponse([{ result: { data: row } }])) as unknown as typeof fetch;
 }
 
 afterEach(() => {
@@ -45,7 +43,7 @@ afterEach(() => {
 });
 
 describe("TaskCreateForm", () => {
-  it("submits the trimmed title with no dueDate when none is set", async () => {
+  it("submits the trimmed title with no dueDate or tags for plain text", async () => {
     const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
 
     renderTaskCreateForm(fetchImpl);
@@ -64,9 +62,7 @@ describe("TaskCreateForm", () => {
     });
   });
 
-  it("submits the trimmed title with a dueDate payload when a due date is set", async () => {
-    // The due date field starts empty, so its calendar's default view falls back to
-    // "today" — fixed here so the picked day-26 lands on a known, asserted-exact date.
+  it("submits a date-only dueDate payload for a date-phrase input", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 6, 1));
 
@@ -75,10 +71,8 @@ describe("TaskCreateForm", () => {
     renderTaskCreateForm(fetchImpl);
 
     fireEvent.change(screen.getByLabelText("Task title"), {
-      target: { value: "Buy milk" },
+      target: { value: "Buy milk tomorrow" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Due date" }));
-    fireEvent.click(screen.getByRole("gridcell", { name: "26" }));
     fireEvent.click(screen.getByRole("button", { name: "Add task" }));
 
     vi.useRealTimers();
@@ -86,20 +80,39 @@ describe("TaskCreateForm", () => {
 
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({
-      0: { title: "Buy milk", dueDate: "2026-07-26" },
+      0: { title: "Buy milk", dueDate: "2026-07-02" },
     });
   });
 
-  it("submits notes in the mutation payload when set", async () => {
+  it("submits a dueDate payload with a time component when the phrase includes a time", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 1));
+
     const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
 
     renderTaskCreateForm(fetchImpl);
 
     fireEvent.change(screen.getByLabelText("Task title"), {
-      target: { value: "Buy milk" },
+      target: { value: "Buy milk tomorrow at 5pm" },
     });
-    fireEvent.change(screen.getByLabelText("Task notes"), {
-      target: { value: "Get oat milk" },
+    fireEvent.click(screen.getByRole("button", { name: "Add task" }));
+
+    vi.useRealTimers();
+    await screen.findByRole("button", { name: "Add task" });
+
+    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body as string)).toEqual({
+      0: { title: "Buy milk", dueDate: "2026-07-02T17:00" },
+    });
+  });
+
+  it("submits tags for one or more #tag tokens typed into the input", async () => {
+    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
+
+    renderTaskCreateForm(fetchImpl);
+
+    fireEvent.change(screen.getByLabelText("Task title"), {
+      target: { value: "Buy milk #errand #urgent" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add task" }));
 
@@ -107,20 +120,17 @@ describe("TaskCreateForm", () => {
 
     const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(JSON.parse(init.body as string)).toEqual({
-      0: { title: "Buy milk", notes: "Get oat milk" },
+      0: { title: "Buy milk", tags: ["errand", "urgent"] },
     });
   });
 
-  it("omits notes from the mutation payload when empty or whitespace-only", async () => {
+  it("omits dueDate from the payload when nothing parses", async () => {
     const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
 
     renderTaskCreateForm(fetchImpl);
 
     fireEvent.change(screen.getByLabelText("Task title"), {
       target: { value: "Buy milk" },
-    });
-    fireEvent.change(screen.getByLabelText("Task notes"), {
-      target: { value: "   " },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add task" }));
 
@@ -132,7 +142,25 @@ describe("TaskCreateForm", () => {
     });
   });
 
-  it("does not call the mutation when the title is empty or whitespace-only", () => {
+  it("omits tags from the payload when no #tag token is present", async () => {
+    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
+
+    renderTaskCreateForm(fetchImpl);
+
+    fireEvent.change(screen.getByLabelText("Task title"), {
+      target: { value: "Buy milk" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add task" }));
+
+    await screen.findByRole("button", { name: "Add task" });
+
+    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body as string)).toEqual({
+      0: { title: "Buy milk" },
+    });
+  });
+
+  it("does not call the mutation when the input is empty or whitespace-only", () => {
     const fetchImpl = vi.fn() as unknown as typeof fetch;
 
     renderTaskCreateForm(fetchImpl);
@@ -145,101 +173,49 @@ describe("TaskCreateForm", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it("resets all fields on success", async () => {
+  it("does not call the mutation when the input resolves to an empty title", () => {
+    const fetchImpl = vi.fn() as unknown as typeof fetch;
+
+    renderTaskCreateForm(fetchImpl);
+
+    fireEvent.change(screen.getByLabelText("Task title"), {
+      target: { value: "tomorrow" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add task" }));
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("does not call the mutation when the input is only a tag", () => {
+    const fetchImpl = vi.fn() as unknown as typeof fetch;
+
+    renderTaskCreateForm(fetchImpl);
+
+    fireEvent.change(screen.getByLabelText("Task title"), {
+      target: { value: "#chores" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add task" }));
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("resets the input to empty and hides the live preview on success", async () => {
     const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
 
     renderTaskCreateForm(fetchImpl);
 
     fireEvent.change(screen.getByLabelText("Task title"), {
-      target: { value: "Buy milk" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Due date" }));
-    fireEvent.click(screen.getByRole("gridcell", { name: "26" }));
-    fireEvent.change(screen.getByLabelText("Task notes"), {
-      target: { value: "Get oat milk" },
+      target: { value: "Buy milk #errand" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add task" }));
 
     await waitFor(() =>
       expect((screen.getByLabelText("Task title") as HTMLInputElement).value).toBe(""),
     );
-    expect(screen.getByRole("button", { name: "Due date" })).toHaveTextContent("Select a date");
-    expect((screen.getByLabelText("Task notes") as HTMLTextAreaElement).value).toBe("");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("includes tags in the create mutation payload after adding a tag via TagInput", async () => {
-    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
-
-    renderTaskCreateForm(fetchImpl);
-
-    fireEvent.change(screen.getByLabelText("Task title"), {
-      target: { value: "Buy milk" },
-    });
-    fireEvent.change(screen.getByLabelText("Tags"), { target: { value: "urgent" } });
-    fireEvent.keyDown(screen.getByLabelText("Tags"), { key: "Enter" });
-    fireEvent.click(screen.getByRole("button", { name: "Add task" }));
-
-    await screen.findByRole("button", { name: "Add task" });
-
-    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(JSON.parse(init.body as string)).toEqual({
-      0: { title: "Buy milk", tags: ["urgent"] },
-    });
-  });
-
-  it("omits tags from the mutation payload when no tags were added", async () => {
-    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
-
-    renderTaskCreateForm(fetchImpl);
-
-    fireEvent.change(screen.getByLabelText("Task title"), {
-      target: { value: "Buy milk" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add task" }));
-
-    await screen.findByRole("button", { name: "Add task" });
-
-    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(JSON.parse(init.body as string)).toEqual({
-      0: { title: "Buy milk" },
-    });
-  });
-
-  it("clears the tag chips on success alongside the other fields", async () => {
-    const fetchImpl = successFetch({ id: "1", title: "Buy milk" });
-
-    renderTaskCreateForm(fetchImpl);
-
-    fireEvent.change(screen.getByLabelText("Task title"), {
-      target: { value: "Buy milk" },
-    });
-    fireEvent.change(screen.getByLabelText("Tags"), { target: { value: "urgent" } });
-    fireEvent.keyDown(screen.getByLabelText("Tags"), { key: "Enter" });
-    fireEvent.click(screen.getByRole("button", { name: "Add task" }));
-
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "Remove urgent" })).not.toBeInTheDocument(),
-    );
-  });
-
-  it("surfaces a matching suggestion from the tagSuggestions prop", () => {
-    renderTaskCreateForm(vi.fn() as unknown as typeof fetch, ["urgent", "home"]);
-
-    fireEvent.change(screen.getByLabelText("Tags"), { target: { value: "urg" } });
-
-    expect(screen.getByRole("option", { name: "urgent" })).toBeInTheDocument();
-  });
-
-  it("still renders and lets a tag be added via freeform Enter when tagSuggestions is omitted", () => {
-    renderTaskCreateForm(vi.fn() as unknown as typeof fetch);
-
-    fireEvent.change(screen.getByLabelText("Tags"), { target: { value: "urgent" } });
-    fireEvent.keyDown(screen.getByLabelText("Tags"), { key: "Enter" });
-
-    expect(screen.getByRole("button", { name: "Remove urgent" })).toBeInTheDocument();
-  });
-
-  it("renders an inline error and preserves fields when the mutation fails", async () => {
+  it("renders an inline error and preserves the raw input text on mutation failure", async () => {
     const fetchImpl = vi.fn(() =>
       jsonResponse(
         [
@@ -258,19 +234,13 @@ describe("TaskCreateForm", () => {
     renderTaskCreateForm(fetchImpl);
 
     fireEvent.change(screen.getByLabelText("Task title"), {
-      target: { value: "Buy milk" },
-    });
-    fireEvent.change(screen.getByLabelText("Task notes"), {
-      target: { value: "Get oat milk" },
+      target: { value: "Buy milk #errand" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add task" }));
 
     expect(await screen.findByText("Title is required")).toBeInTheDocument();
     expect((screen.getByLabelText("Task title") as HTMLInputElement).value).toBe(
-      "Buy milk",
-    );
-    expect((screen.getByLabelText("Task notes") as HTMLTextAreaElement).value).toBe(
-      "Get oat milk",
+      "Buy milk #errand",
     );
   });
 
@@ -304,5 +274,71 @@ describe("TaskCreateForm", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Add task" })).not.toBeDisabled(),
     );
+  });
+
+  describe("live preview", () => {
+    it("shows nothing when neither a date phrase nor a tag is present", () => {
+      renderTaskCreateForm(vi.fn() as unknown as typeof fetch);
+
+      fireEvent.change(screen.getByLabelText("Task title"), {
+        target: { value: "Buy milk" },
+      });
+
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
+
+    it("shows a 'Due …' line reflecting the resolved date when typing a date phrase", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 6, 1));
+
+      renderTaskCreateForm(vi.fn() as unknown as typeof fetch);
+
+      fireEvent.change(screen.getByLabelText("Task title"), {
+        target: { value: "Buy milk tomorrow" },
+      });
+
+      expect(screen.getByText(/^Due /)).toBeInTheDocument();
+    });
+
+    it("shows a Badge with the tag's text when typing a #tag", () => {
+      renderTaskCreateForm(vi.fn() as unknown as typeof fetch);
+
+      fireEvent.change(screen.getByLabelText("Task title"), {
+        target: { value: "Buy milk #errand" },
+      });
+
+      expect(screen.getByText("errand")).toBeInTheDocument();
+    });
+
+    it("swaps the previewed date in place when the detected phrase changes", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 6, 1));
+
+      renderTaskCreateForm(vi.fn() as unknown as typeof fetch);
+
+      fireEvent.change(screen.getByLabelText("Task title"), {
+        target: { value: "Buy milk tomorrow" },
+      });
+      const tomorrowText = screen.getByText(/^Due /).textContent;
+
+      fireEvent.change(screen.getByLabelText("Task title"), {
+        target: { value: "Buy milk in 3 days" },
+      });
+      const laterText = screen.getByText(/^Due /).textContent;
+
+      expect(screen.getAllByText(/^Due /)).toHaveLength(1);
+      expect(laterText).not.toBe(tomorrowText);
+    });
+
+    it("exposes role=status and aria-live=polite on the preview container", () => {
+      renderTaskCreateForm(vi.fn() as unknown as typeof fetch);
+
+      fireEvent.change(screen.getByLabelText("Task title"), {
+        target: { value: "Buy milk #errand" },
+      });
+
+      const status = screen.getByRole("status");
+      expect(status).toHaveAttribute("aria-live", "polite");
+    });
   });
 });

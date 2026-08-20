@@ -19,7 +19,7 @@ export function TasksPage() {
   return (
     <Section title="Tasks">
       <Panel title="Add a task">
-        <TaskCreateForm tagSuggestions={tagSuggestions} />
+        <TaskCreateForm />
       </Panel>
       {isLoading && <LoadingState label="Loading tasks…" />}
       {isError && <p>Something went wrong loading tasks.</p>}
